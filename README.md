@@ -1,1 +1,0 @@
-Esp32-C6 ZigBee example, based on clean ZBOSS SDK
