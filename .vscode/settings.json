@@ -9,7 +9,8 @@
         "esp_mac.h": "c",
         "sensair_s8.h": "c",
         "compare": "c",
-        "zb_zcl_reporting.h": "c"
+        "zb_zcl_reporting.h": "c",
+        "zigbee_utils": "c"
     },
     "idf.adapterTargetName": "esp32c6"
 }
