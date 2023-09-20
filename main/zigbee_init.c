@@ -1,283 +1,613 @@
-#include "string.h"
-#include "nvs_flash.h"
+#include "zigbee_init.h"
+#include "esp_check.h"
+#include "esp_err.h"
 #include "esp_log.h"
+#include "nvs_flash.h"
+#include "string.h"
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
-#include "zboss_api.h"
-#include "zigbee_init.h"
-#include "esp_mac.h"
+#include "zcl/esp_zigbee_zcl_common.h"
 #include "sensair_s8.h"
-#include "zcl/zb_zcl_reporting.h"
+#include "driver/i2c.h"
+#include "bmx280.h"
+#include "ssd1306.h"
+#include "zigbee_logo.h"
+#include "zigbee_connected.h"
+#include "zigbee_disconnected.h"
+#include "zigbee_image.h"
+#include "iot_button.h"
+#include <time.h>
+#include <sys/time.h>
+
+/*------ Clobal definitions -----------*/
+static char manufacturer[16], model[16], firmware_version[16];
+bool time_updated = false, connected = false, DEMO_MODE = true; /*< DEMO_MDE disable all real sensors and send fake data*/
+int lcd_timeout = 30;
+uint8_t screen_number = 0;
+uint16_t temperature = 0, humidity = 0, pressure = 0, CO2_value = 0;
+float temp = 0, pres = 0, hum = 0;
+char strftime_buf[64];
+static ssd1306_handle_t ssd1306_dev = NULL;
+SemaphoreHandle_t i2c_semaphore = NULL;
+static const char *TAG = "ESP_HA_CO2_SENSOR";
 
 #if !defined CONFIG_ZB_ZCZR
 #error Define ZB_ZCZR in idf.py menuconfig to compile light (Router) source code.
 #endif
 
-static const char *TAG = "ESP_ZB_CO2_ZBOSS";
-/* ZBOSS*/
-/**
- * Global variables definitions
- */
-zb_uint16_t g_dst_addr;
-zb_uint8_t g_addr_mode;
-zb_uint8_t g_endpoint;
-uint16_t CO2_value;
-
-/**
- * Declaring attributes for each cluster
- */
-
-/* Basic cluster attributes */
-zb_uint8_t g_attr_hardware_version = ZB_ZCL_BASIC_HW_VERSION_DEFAULT_VALUE;
-zb_uint8_t g_attr_manufacturer_name[] = {4, 'L', 'e', 'n', 'z'};
-zb_uint8_t g_attr_model_id[] = {3, 'C', 'O', '2'};
-zb_uint8_t g_attr_power_source = ZB_ZCL_BASIC_POWER_SOURCE_DC_SOURCE;
-zb_uint8_t g_attr_sw_build_id = 0;
-ZB_ZCL_DECLARE_BASIC_ATTRIB_LIST_CUSTOM(basic_attr_list, &g_attr_hardware_version,
-                                        &g_attr_manufacturer_name, &g_attr_model_id, &g_attr_power_source, &g_attr_sw_build_id);
-
-/* Identify cluster attributes */
-zb_uint16_t g_attr_identify_time = ZB_ZCL_IDENTIFY_IDENTIFY_TIME_DEFAULT_VALUE;
-ZB_ZCL_DECLARE_IDENTIFY_ATTRIB_LIST(identify_attr_list, &g_attr_identify_time);
-
-/* Carbon Dioxide measurement cluster attributes data */
-zb_uint16_t co2_attr_measured_value = ZB_ZCL_ATTR_CARBON_DIOXIDE_MEASUREMENT_VALUE_UNKNOWN;
-ZB_ZCL_DECLARE_CARBON_DIOXIDE_MEASUREMENT_ATTRIB_LIST(carbon_dioxide_attr_list, &co2_attr_measured_value);
-
-/* Declare cluster list for the device */
-ZB_DECLARE_CUSTOM_CLUSTER_LIST(custom_clusters,
-                               basic_attr_list,
-                               identify_attr_list,
-                               carbon_dioxide_attr_list);
-
-/* Declare endpoint */
-ZB_DECLARE_CUSTOM_EP(custom_ep, ENDPOINT_SERVER, custom_clusters);
-
-/* Declare application's device context for single-endpoint device */
-ZB_DECLARE_CUSTOM_CTX(custom_ctx, custom_ep);
-
-void zboss_signal_handler(zb_uint8_t param)
+static void button_single_click_cb(void *arg, void *usr_data)
 {
-  zb_zdo_app_signal_hdr_t *sg_p = NULL;
-  zb_zdo_app_signal_t sig = zb_get_app_signal(param, &sg_p);
-
-  // ESP_LOGI(TAG, ">> zboss_signal_handler: status %d signal ",(ZB_GET_APP_SIGNAL_STATUS(param));//, sig));
-
-  if (ZB_GET_APP_SIGNAL_STATUS(param) == 0)
-  {
-    switch (sig)
+    ESP_LOGI("Button boot", "Single click, change screen to %d", screen_number);
+    lcd_timeout = 30;
+    screen_number = screen_number + 1;
+    if (screen_number == 3)
     {
-    case ZB_ZDO_SIGNAL_DEFAULT_START:
-    case ZB_BDB_SIGNAL_DEVICE_FIRST_START:
-    case ZB_BDB_SIGNAL_DEVICE_REBOOT:
-      ESP_LOGI(TAG, "Device STARTED OK, signal = %d", sig);
-      break;
-
-    case ZB_ZDO_SIGNAL_LEAVE:
-      zb_zdo_signal_leave_params_t *p_leave_params = ZB_ZDO_SIGNAL_GET_PARAMS(sg_p, zb_zdo_signal_leave_params_t);
-      ESP_LOGI(TAG, "Network left. Leave type: %d", p_leave_params->leave_type);
-      break;
-    default:
-      ESP_LOGI(TAG, "Unknown signal %hd", sig);
-      break;
+        screen_number = 0;
     }
-  }
-  else if (sig == ZB_ZDO_SIGNAL_PRODUCTION_CONFIG_READY)
-  {
-    ESP_LOGI(TAG, "Production config is not present or invalid");
-  }
-  else
-  {
-    ESP_LOGI(TAG,
-             "Device started FAILED status %d",
-             (ZB_GET_APP_SIGNAL_STATUS(param)));
-  }
-
-  if (param)
-  {
-    zb_buf_free(param);
-  }
-
-  ESP_LOGI(TAG, "<< zboss_signal_handler");
 }
 
-zb_uint8_t zcl_specific_cluster_cmd_handler(zb_uint8_t param)
+static void button_long_press_cb(void *arg, void *usr_data)
 {
-  zb_zcl_parsed_hdr_t cmd_info;
-  zb_uint8_t lqi = ZB_MAC_LQI_UNDEFINED;
-  zb_int8_t rssi = ZB_MAC_RSSI_UNDEFINED;
-
-  ESP_LOGI("ZCL", "> zcl_specific_cluster_cmd_handler");
-
-  ZB_ZCL_COPY_PARSED_HEADER(param, &cmd_info);
-
-  g_dst_addr = ZB_ZCL_PARSED_HDR_SHORT_DATA(&cmd_info).source.u.short_addr;
-  g_endpoint = ZB_ZCL_PARSED_HDR_SHORT_DATA(&cmd_info).src_endpoint;
-  g_addr_mode = ZB_APS_ADDR_MODE_16_ENDP_PRESENT;
-
-  ZB_ZCL_DEBUG_DUMP_HEADER(&cmd_info);
-  ESP_LOGI("ZCL", "payload size: %i", param);
-
-  zb_zdo_get_diag_data(g_dst_addr, &lqi, &rssi);
-  ESP_LOGI("ZCL", "lqi %hd rssi %d g_dst_addr %x g_endpoint %x", lqi, rssi, g_dst_addr, g_endpoint);
-
-  if (cmd_info.cmd_direction == ZB_ZCL_FRAME_DIRECTION_TO_CLI)
-  {
-    ESP_LOGI("ZCL",
-             "Unsupported \"from server\" command direction");
-  }
-
-  ESP_LOGI("ZCL", "< zcl_specific_cluster_cmd_handler");
-  return ZB_FALSE;
+    ESP_LOGI("Button boot", "Long press, leave & reset");
+    esp_zb_factory_reset();
 }
 
-static void update_attr_value(void *pvParameters)
+void register_button()
 {
-  while (1)
-  {
-    float co2_fixed = (double)CO2_value / 1000000;
-    ESP_LOGI(TAG, "Set CO2 value. zcl_status: %f", co2_fixed);
-    zb_zcl_status_t zcl_status;
-    zcl_status = zb_zcl_set_attr_val(ENDPOINT_SERVER,
-                                     ZB_ZCL_CLUSTER_ID_CARBON_DIOXIDE_MEASUREMENT,
-                                     ZB_ZCL_CLUSTER_SERVER_ROLE,
-                                     ZB_ZCL_ATTR_CARBON_DIOXIDE_MEASUREMENT_VALUE_ID,
-                                     (zb_uint8_t *)&co2_fixed,
-                                     ZB_FALSE);
-    if (zcl_status != ZB_ZCL_STATUS_SUCCESS)
-    {
-      ESP_LOGI(TAG, "Set CO2 value fail. zcl_status: %d", zcl_status);
-    }
-    /*-------------------------------*/
-    zb_zcl_reporting_info_t cmd = {
-        .ep = ENDPOINT_SERVER,
-        .cluster_id = ZB_ZCL_CLUSTER_ID_CARBON_DIOXIDE_MEASUREMENT,
-        .cluster_role = ZB_ZCL_CLUSTER_SERVER_ROLE,
-        .attr_id = ZB_ZCL_ATTR_CARBON_DIOXIDE_MEASUREMENT_VALUE_ID,
-        .dst.short_addr = 0x0000,
-        .dst.endpoint = ENDPOINT_SERVER,
-        .dst.profile_id = ZB_AF_HA_PROFILE_ID,
-        .manuf_code = ZB_ZCL_MANUFACTURER_WILDCARD_ID,
+    // create gpio button
+    button_config_t gpio_btn_cfg = {
+        .type = BUTTON_TYPE_GPIO,
+        .long_press_time = CONFIG_BUTTON_LONG_PRESS_TIME_MS,
+        .short_press_time = CONFIG_BUTTON_SHORT_PRESS_TIME_MS,
+        .gpio_button_config = {
+            .gpio_num = 9,
+            .active_level = 0,
+        },
     };
 
-    if (ZCL_CTX().reporting_ctx.buf_ref != ZB_UNDEFINED_BUFFER)
+    button_handle_t gpio_btn = iot_button_create(&gpio_btn_cfg);
+    if (NULL == gpio_btn)
     {
-      ESP_LOGW(TAG, "buffer is free, send report");
-      zb_zcl_send_report_attr_command(&cmd, ZCL_CTX().reporting_ctx.buf_ref);
-      ;
-      ZCL_CTX().reporting_ctx.buf_ref = ZB_UNDEFINED_BUFFER;
+        ESP_LOGE("Button boot", "Button create failed");
     }
-    else
+
+    iot_button_register_cb(gpio_btn, BUTTON_SINGLE_CLICK, button_single_click_cb, NULL);
+    iot_button_register_cb(gpio_btn, BUTTON_LONG_PRESS_START, button_long_press_cb, NULL);
+}
+
+esp_err_t i2c_master_init()
+{
+    // Don't initialize twice
+    if (i2c_semaphore != NULL)
     {
-      /* Report buffer is in use. Retry sending on cb */
-      ESP_LOGW(TAG, "buffer is in use, skip");
+        return ESP_FAIL;
     }
-    /*--------------------------------------------------------------------*/
-    vTaskDelay(pdMS_TO_TICKS(5000));
-  }
+
+    i2c_semaphore = xSemaphoreCreateMutex();
+    if (i2c_semaphore == NULL)
+    {
+        return ESP_FAIL;
+    }
+
+    i2c_config_t i2c_config = {
+        .mode = I2C_MODE_MASTER,
+        .sda_io_num = GPIO_NUM_6,
+        .scl_io_num = GPIO_NUM_7,
+        .sda_pullup_en = GPIO_PULLUP_ENABLE,
+        .scl_pullup_en = GPIO_PULLUP_ENABLE,
+        .master.clk_speed = 1000000};
+
+    esp_err_t ret;
+
+    ret = i2c_param_config(I2C_NUM_0, &i2c_config);
+    if (ret != ESP_OK)
+    {
+        return ret;
+    }
+
+    ret = i2c_driver_install(I2C_NUM_0, I2C_MODE_MASTER, 0, 0, 0);
+    if (ret != ESP_OK)
+    {
+        return ret;
+    }
+
+    return ESP_OK;
+}
+
+/* --------- User task section -----------------*/
+static void get_rtc_time()
+{
+    time_t now;
+    struct tm timeinfo;
+    time(&now);
+    localtime_r(&now, &timeinfo);
+    strftime(strftime_buf, sizeof(strftime_buf), "%a %H:%M:%S", &timeinfo);
+}
+
+static void lcd_task(void *pvParameters)
+{
+    /* Start lcd */
+    ssd1306_dev = ssd1306_create(I2C_NUM_0, SSD1306_I2C_ADDRESS);
+    ssd1306_refresh_gram(ssd1306_dev);
+    ssd1306_clear_screen(ssd1306_dev, 0x00);
+
+    ssd1306_draw_bitmap(ssd1306_dev, 0, 16, zigbee, 128, 32);
+    ssd1306_refresh_gram(ssd1306_dev);
+    vTaskDelay(1500 / portTICK_PERIOD_MS);
+
+    while (1)
+    {
+        switch (screen_number)
+        {
+        case 0:
+            ESP_LOGI(TAG, "Screen number 0 ");
+            if (CO2_value != 0)
+            {
+                ESP_LOGI("LCD", "data updating");
+                ssd1306_refresh_gram(ssd1306_dev);
+                ssd1306_clear_screen(ssd1306_dev, 0x00);
+                char co2_data_str[16] = {0};
+                char temp_data_str[16] = {0};
+                char pres_data_str[16] = {0};
+                char hum_data_str[16] = {0};
+                sprintf(co2_data_str, "CO2 : %d", CO2_value);
+                sprintf(temp_data_str, "Temp: %.2f", temp);
+                sprintf(pres_data_str, "Pres: %.1f", pres / 100);
+                sprintf(hum_data_str, "Hum : %.1f", hum);
+                ssd1306_draw_string(ssd1306_dev, 5, 0, (const uint8_t *)co2_data_str, 16, 1);
+                ssd1306_draw_string(ssd1306_dev, 5, 16, (const uint8_t *)temp_data_str, 16, 1);
+                ssd1306_draw_string(ssd1306_dev, 5, 32, (const uint8_t *)pres_data_str, 16, 1);
+                ssd1306_draw_string(ssd1306_dev, 5, 48, (const uint8_t *)hum_data_str, 16, 1);
+                ssd1306_draw_bitmap(ssd1306_dev, 112, 48, zigbee_image, 16, 16);
+                if (connected)
+                {
+                    ssd1306_draw_bitmap(ssd1306_dev, 112, 0, zigbee_connected, 16, 16);
+                }
+                else
+                {
+                    ssd1306_draw_bitmap(ssd1306_dev, 112, 0, zigbee_disconnected, 16, 16);
+                }
+                ssd1306_refresh_gram(ssd1306_dev);
+            }
+            else
+            {
+                ESP_LOGI("LCD", "Waiting data");
+            }
+            break;
+        case 1:
+            ESP_LOGI(TAG, "Screen number 1 ");
+            ssd1306_refresh_gram(ssd1306_dev);
+            ssd1306_clear_screen(ssd1306_dev, 0x00);
+            ssd1306_draw_bitmap(ssd1306_dev, 112, 48, zigbee_image, 16, 16);
+            if (connected)
+            {
+                if (time_updated)
+                {
+                    get_rtc_time();
+                    ESP_LOGI(TAG, "The current date/time is: %s", strftime_buf);
+                    ssd1306_draw_string(ssd1306_dev, 5, 48, (const uint8_t *)strftime_buf, 16, 1);
+                }
+
+                char connected_str[16] = {0};
+                char PAN_ID[16] = {0};
+                char Channel[16] = {0};
+                sprintf(connected_str, "  Connected");
+                sprintf(PAN_ID, "PAN ID : 0x%04hx", esp_zb_get_pan_id());
+                sprintf(Channel, "Channel: %d", esp_zb_get_current_channel());
+                ssd1306_draw_string(ssd1306_dev, 5, 0, (const uint8_t *)connected_str, 16, 1);
+                ssd1306_draw_string(ssd1306_dev, 5, 16, (const uint8_t *)PAN_ID, 16, 1);
+                ssd1306_draw_string(ssd1306_dev, 5, 32, (const uint8_t *)Channel, 16, 1);
+                ssd1306_draw_bitmap(ssd1306_dev, 112, 0, zigbee_connected, 16, 16);
+            }
+            else
+            {
+                char disconnected_str[16] = {0};
+                sprintf(disconnected_str, " Disconnected");
+                ssd1306_draw_string(ssd1306_dev, 5, 16, (const uint8_t *)disconnected_str, 16, 1);
+                ssd1306_draw_bitmap(ssd1306_dev, 112, 0, zigbee_disconnected, 16, 16);
+            }
+            ssd1306_refresh_gram(ssd1306_dev);
+            break;
+        case 2:
+            ESP_LOGI(TAG, "Screen number 2 ");
+            ssd1306_clear_screen(ssd1306_dev, 0x00);
+            ssd1306_refresh_gram(ssd1306_dev);
+            break;
+        default:
+            ESP_LOGW(TAG, "Default screen --------");
+            break;
+        }
+        lcd_timeout = lcd_timeout - 1;
+        if (lcd_timeout <= 0)
+        {
+            screen_number = 2;
+        }
+        else
+        {
+            lcd_timeout = lcd_timeout - 1;
+            ESP_LOGI(TAG, "lcd_timeout %d ", lcd_timeout);
+        }
+        vTaskDelay(1000 / portTICK_PERIOD_MS);
+    }
+}
+
+static void bmx280_task(void *pvParameters)
+{
+    bmx280_t *bmx280 = bmx280_create(I2C_NUM_0);
+
+    if (!bmx280)
+    {
+        ESP_LOGE("BMX280", "Could not create bmx280 driver.");
+        return;
+    }
+
+    ESP_ERROR_CHECK(bmx280_init(bmx280));
+    bmx280_config_t bmx_cfg = BMX280_DEFAULT_CONFIG;
+    ESP_ERROR_CHECK(bmx280_configure(bmx280, &bmx_cfg));
+
+    while (1)
+    {
+        ESP_ERROR_CHECK(bmx280_setMode(bmx280, BMX280_MODE_FORCE));
+        do
+        {
+            vTaskDelay(5000 / portTICK_PERIOD_MS);
+        } while (bmx280_isSampling(bmx280));
+        ESP_ERROR_CHECK(bmx280_readoutFloat(bmx280, &temp, &pres, &hum));
+        ESP_LOGI("BMX280", "Read Values: temp = %.2f, pres = %.1f, hum = %.1f", temp, pres / 100, hum);
+        temperature = (uint16_t)(temp * 100);
+        humidity = (uint16_t)(hum * 100);
+        pressure = (uint16_t)(pres / 100);
+    }
+}
+
+static void demo_task()
+{
+    while (1)
+    {
+        if (connected)
+        {
+            temperature = rand() % (3000 + 1 - 1000);
+            humidity = rand() % (9000 + 1 - 2000);
+            pressure = rand() % (1000 + 1 - 800);
+            CO2_value = rand() % (3000 + 1 - 400);
+            ESP_LOGI("DEMO MODE", "Temp = %d, Humm = %d, Press = %d, CO2_Value = %d", temperature, humidity, pressure, CO2_value);
+            if (time_updated)
+            {
+                get_rtc_time();
+                ESP_LOGI("DEMO MODE", "The current date/time is: %s", strftime_buf);
+            }
+        }
+        vTaskDelay(1000 / portTICK_PERIOD_MS);
+    }
+}
+/*----------------------------------------*/
+
+static void bdb_start_top_level_commissioning_cb(uint8_t mode_mask)
+{
+    ESP_ERROR_CHECK(esp_zb_bdb_start_top_level_commissioning(mode_mask));
+}
+
+/* Manual reporting atribute to coordinator */
+static void reportAttribute(uint8_t endpoint, uint16_t clusterID, uint16_t attributeID, void *value, uint8_t value_length)
+{
+    esp_zb_zcl_report_attr_cmd_t cmd = {
+        .zcl_basic_cmd = {
+            .dst_addr_u.addr_short = 0x0000,
+            .dst_endpoint = endpoint,
+            .src_endpoint = endpoint,
+        },
+        .address_mode = ESP_ZB_APS_ADDR_MODE_16_ENDP_PRESENT,
+        .clusterID = clusterID,
+        .attributeID = attributeID,
+        .cluster_role = ESP_ZB_ZCL_CLUSTER_SERVER_ROLE,
+    };
+    esp_zb_zcl_attr_t *value_r = esp_zb_zcl_get_attribute(endpoint, clusterID, ESP_ZB_ZCL_CLUSTER_SERVER_ROLE, attributeID);
+    memcpy(value_r->data_p, value, value_length);
+    esp_zb_zcl_report_attr_cmd_req(&cmd);
+}
+
+/* Task for update attribute value */
+void update_attribute()
+{
+    while (1)
+    {
+        if (connected)
+        {
+            /* Write new temperature value */
+            esp_zb_zcl_status_t state_tmp = esp_zb_zcl_set_attribute_val(SENSOR_ENDPOINT, ESP_ZB_ZCL_CLUSTER_ID_TEMP_MEASUREMENT, ESP_ZB_ZCL_CLUSTER_SERVER_ROLE, ESP_ZB_ZCL_ATTR_TEMP_MEASUREMENT_VALUE_ID, &temperature, false);
+
+            /* Check for error */
+            if (state_tmp != ESP_ZB_ZCL_STATUS_SUCCESS)
+            {
+                ESP_LOGE(TAG, "Setting temperature attribute failed!");
+            }
+
+            /* Write new humidity value */
+            esp_zb_zcl_status_t state_hum = esp_zb_zcl_set_attribute_val(SENSOR_ENDPOINT, ESP_ZB_ZCL_CLUSTER_ID_REL_HUMIDITY_MEASUREMENT, ESP_ZB_ZCL_CLUSTER_SERVER_ROLE, ESP_ZB_ZCL_ATTR_REL_HUMIDITY_MEASUREMENT_VALUE_ID, &humidity, false);
+
+            /* Check for error */
+            if (state_hum != ESP_ZB_ZCL_STATUS_SUCCESS)
+            {
+                ESP_LOGE(TAG, "Setting humidity attribute failed!");
+            }
+
+            /* Write new pressure value */
+            esp_zb_zcl_status_t state_press = esp_zb_zcl_set_attribute_val(SENSOR_ENDPOINT, ESP_ZB_ZCL_CLUSTER_ID_PRESSURE_MEASUREMENT, ESP_ZB_ZCL_CLUSTER_SERVER_ROLE, ESP_ZB_ZCL_ATTR_PRESSURE_MEASUREMENT_VALUE_ID, &pressure, false);
+
+            /* Check for error */
+            if (state_press != ESP_ZB_ZCL_STATUS_SUCCESS)
+            {
+                ESP_LOGE(TAG, "Setting pressure attribute failed!");
+            }
+
+            if (CO2_value != 0)
+            {
+                /* Write new CO2_value value */
+                esp_zb_zcl_status_t state_co2 = esp_zb_zcl_set_attribute_val(SENSOR_ENDPOINT, CO2_CUSTOM_CLUSTER, ESP_ZB_ZCL_CLUSTER_SERVER_ROLE, 0, &CO2_value, false);
+
+                /* Check for error */
+                if (state_co2 != ESP_ZB_ZCL_STATUS_SUCCESS)
+                {
+                    ESP_LOGE(TAG, "Setting CO2_value attribute failed!");
+                }
+
+                /* CO2 Cluster is custom and we must report it manually*/
+                reportAttribute(SENSOR_ENDPOINT, CO2_CUSTOM_CLUSTER, 0, &CO2_value, 2);
+            }
+        }
+        vTaskDelay(5000 / portTICK_PERIOD_MS);
+    }
+}
+
+static esp_err_t zb_attribute_handler(const esp_zb_zcl_set_attr_value_message_t *message)
+{
+    esp_err_t ret = ESP_OK;
+    ESP_RETURN_ON_FALSE(message, ESP_FAIL, TAG, "Empty message");
+    ESP_RETURN_ON_FALSE(message->info.status == ESP_ZB_ZCL_STATUS_SUCCESS, ESP_ERR_INVALID_ARG, TAG, "Received message: error status(%d)",
+                        message->info.status);
+    ESP_LOGI(TAG, "Received message: endpoint(%d), cluster(0x%x), attribute(0x%x), data size(%d)", message->info.dst_endpoint, message->info.cluster,
+             message->attribute.id, message->attribute.data.size);
+    if (message->info.dst_endpoint == SENSOR_ENDPOINT)
+    {
+        switch (message->info.cluster)
+        {
+        case ESP_ZB_ZCL_CLUSTER_ID_IDENTIFY:
+            ESP_LOGI(TAG, "Identify pressed");
+            break;
+        default:
+            ESP_LOGI(TAG, "Message data: cluster(0x%x), attribute(0x%x)  ", message->info.cluster, message->attribute.id);
+        }
+    }
+    return ret;
+}
+
+static esp_err_t zb_read_attr_resp_handler(const esp_zb_zcl_cmd_read_attr_resp_message_t *message)
+{
+    ESP_RETURN_ON_FALSE(message, ESP_FAIL, TAG, "Empty message");
+    ESP_RETURN_ON_FALSE(message->info.status == ESP_ZB_ZCL_STATUS_SUCCESS, ESP_ERR_INVALID_ARG, TAG, "Received message: error status(%d)",
+                        message->info.status);
+    ESP_LOGI(TAG, "Read attribute response: status(%d), cluster(0x%x), attribute(0x%x), type(0x%x), value(%d)", message->info.status,
+             message->info.cluster, message->attribute.id, message->attribute.data.type,
+             message->attribute.data.value ? *(uint8_t *)message->attribute.data.value : 0);
+    if (message->info.dst_endpoint == SENSOR_ENDPOINT)
+    {
+        switch (message->info.cluster)
+        {
+        case ESP_ZB_ZCL_CLUSTER_ID_TIME:
+            ESP_LOGI(TAG, "Server time recieved %lu", *(uint32_t *)message->attribute.data.value);
+            struct timeval tv;
+            tv.tv_sec = *(uint32_t *)message->attribute.data.value + 946684800 - 1080; // after adding OTA cluster time shifted to 1080 sec... strange issue ...
+            settimeofday(&tv, NULL);
+            time_updated = true;
+            break;
+        default:
+            ESP_LOGI(TAG, "Message data: cluster(0x%x), attribute(0x%x)  ", message->info.cluster, message->attribute.id);
+        }
+    }
+    return ESP_OK;
+}
+
+static esp_err_t zb_action_handler(esp_zb_core_action_callback_id_t callback_id, const void *message)
+{
+    esp_err_t ret = ESP_OK;
+    switch (callback_id)
+    {
+    case ESP_ZB_CORE_SET_ATTR_VALUE_CB_ID:
+        ret = zb_attribute_handler((esp_zb_zcl_set_attr_value_message_t *)message);
+        break;
+    case ESP_ZB_CORE_CMD_READ_ATTR_RESP_CB_ID:
+        ret = zb_read_attr_resp_handler((esp_zb_zcl_cmd_read_attr_resp_message_t *)message);
+        break;
+    default:
+        ESP_LOGW(TAG, "Receive Zigbee action(0x%x) callback", callback_id);
+        break;
+    }
+    return ret;
+}
+
+void read_server_time()
+{
+    esp_zb_zcl_read_attr_cmd_t read_req;
+    read_req.address_mode = ESP_ZB_APS_ADDR_MODE_16_ENDP_PRESENT;
+    read_req.attributeID = ESP_ZB_ZCL_ATTR_TIME_LOCAL_TIME_ID;
+    read_req.clusterID = ESP_ZB_ZCL_CLUSTER_ID_TIME;
+    read_req.zcl_basic_cmd.dst_endpoint = 1;
+    read_req.zcl_basic_cmd.src_endpoint = 1;
+    read_req.zcl_basic_cmd.dst_addr_u.addr_short = 0x0000;
+    esp_zb_zcl_read_attr_cmd_req(&read_req);
+}
+
+void esp_zb_app_signal_handler(esp_zb_app_signal_t *signal_struct)
+{
+    uint32_t *p_sg_p = signal_struct->p_app_signal;
+    esp_err_t err_status = signal_struct->esp_err_status;
+    esp_zb_app_signal_type_t sig_type = *p_sg_p;
+    esp_zb_zdo_signal_leave_params_t *leave_params = NULL;
+    switch (sig_type)
+    {
+    case ESP_ZB_BDB_SIGNAL_DEVICE_FIRST_START:
+    case ESP_ZB_BDB_SIGNAL_DEVICE_REBOOT:
+    case ESP_ZB_BDB_SIGNAL_STEERING:
+        if (err_status != ESP_OK)
+        {
+            connected = false;
+            ESP_LOGW(TAG, "Stack %s failure with %s status, steering", esp_zb_zdo_signal_to_string(sig_type), esp_err_to_name(err_status));
+            esp_zb_scheduler_alarm((esp_zb_callback_t)bdb_start_top_level_commissioning_cb, ESP_ZB_BDB_MODE_NETWORK_STEERING, 1000);
+        }
+        else
+        {
+            /* device auto start successfully and on a formed network */
+            connected = true;
+            esp_zb_ieee_addr_t extended_pan_id;
+            esp_zb_get_extended_pan_id(extended_pan_id);
+            ESP_LOGI(TAG, "Joined network successfully (Extended PAN ID: %02x:%02x:%02x:%02x:%02x:%02x:%02x:%02x, PAN ID: 0x%04hx, Channel:%d)",
+                     extended_pan_id[7], extended_pan_id[6], extended_pan_id[5], extended_pan_id[4],
+                     extended_pan_id[3], extended_pan_id[2], extended_pan_id[1], extended_pan_id[0],
+                     esp_zb_get_pan_id(), esp_zb_get_current_channel());
+            read_server_time();
+        }
+        break;
+    case ESP_ZB_ZDO_SIGNAL_LEAVE:
+        leave_params = (esp_zb_zdo_signal_leave_params_t *)esp_zb_app_signal_get_params(p_sg_p);
+        if (leave_params->leave_type == ESP_ZB_NWK_LEAVE_TYPE_RESET)
+        {
+            ESP_LOGI(TAG, "Reset device");
+            esp_zb_factory_reset();
+        }
+        break;
+    default:
+        ESP_LOGI(TAG, "ZDO signal: %s (0x%x), status: %s", esp_zb_zdo_signal_to_string(sig_type), sig_type,
+                 esp_err_to_name(err_status));
+        break;
+    }
+}
+
+static void set_zcl_string(char *buffer, char *value)
+{
+    buffer[0] = (char)strlen(value);
+    memcpy(buffer + 1, value, buffer[0]);
 }
 
 static void esp_zb_task(void *pvParameters)
 {
-  /* Initiate the stack start with starting the commissioning */
-  if (zboss_start() != RET_OK)
-  {
-    ESP_LOGI(TAG, "zdo_dev_start failed");
-  }
-  else
-  {
-    /* Call the main loop */
-    zboss_main_loop();
-  }
+    /* initialize Zigbee stack */
+    esp_zb_cfg_t zb_nwk_cfg = ESP_ZB_ZR_CONFIG();
+    esp_zb_init(&zb_nwk_cfg);
+
+    uint16_t undefined_value;
+    undefined_value = 0x8000;
+    /* basic cluster create with fully customized */
+    set_zcl_string(manufacturer, MANUFACTURER_NAME);
+    set_zcl_string(model, MODEL_NAME);
+    set_zcl_string(firmware_version, FIRMWARE_VERSION);
+    uint8_t dc_power_source;
+    dc_power_source = 4;
+    esp_zb_attribute_list_t *esp_zb_basic_cluster = esp_zb_zcl_attr_list_create(ESP_ZB_ZCL_CLUSTER_ID_BASIC);
+    esp_zb_basic_cluster_add_attr(esp_zb_basic_cluster, ESP_ZB_ZCL_ATTR_BASIC_MANUFACTURER_NAME_ID, manufacturer);
+    esp_zb_basic_cluster_add_attr(esp_zb_basic_cluster, ESP_ZB_ZCL_ATTR_BASIC_MODEL_IDENTIFIER_ID, model);
+    esp_zb_basic_cluster_add_attr(esp_zb_basic_cluster, ESP_ZB_ZCL_ATTR_BASIC_SW_BUILD_ID, firmware_version);
+    esp_zb_basic_cluster_add_attr(esp_zb_basic_cluster, ESP_ZB_ZCL_ATTR_BASIC_POWER_SOURCE_ID, &dc_power_source); /**< DC source. */
+
+    /* identify cluster create with fully customized */
+    uint8_t identyfi_id;
+    identyfi_id = 0;
+    esp_zb_attribute_list_t *esp_zb_identify_cluster = esp_zb_zcl_attr_list_create(ESP_ZB_ZCL_CLUSTER_ID_IDENTIFY);
+    esp_zb_identify_cluster_add_attr(esp_zb_identify_cluster, ESP_ZB_ZCL_CMD_IDENTIFY_IDENTIFY_ID, &identyfi_id);
+
+    /* Temperature cluster */
+    esp_zb_attribute_list_t *esp_zb_temperature_meas_cluster = esp_zb_zcl_attr_list_create(ESP_ZB_ZCL_CLUSTER_ID_TEMP_MEASUREMENT);
+    esp_zb_temperature_meas_cluster_add_attr(esp_zb_temperature_meas_cluster, ESP_ZB_ZCL_ATTR_TEMP_MEASUREMENT_VALUE_ID, &undefined_value);
+    esp_zb_temperature_meas_cluster_add_attr(esp_zb_temperature_meas_cluster, ESP_ZB_ZCL_ATTR_TEMP_MEASUREMENT_MIN_VALUE_ID, &undefined_value);
+    esp_zb_temperature_meas_cluster_add_attr(esp_zb_temperature_meas_cluster, ESP_ZB_ZCL_ATTR_TEMP_MEASUREMENT_MAX_VALUE_ID, &undefined_value);
+
+    /* Humidity cluster */
+    esp_zb_attribute_list_t *esp_zb_humidity_meas_cluster = esp_zb_zcl_attr_list_create(ESP_ZB_ZCL_CLUSTER_ID_REL_HUMIDITY_MEASUREMENT);
+    esp_zb_humidity_meas_cluster_add_attr(esp_zb_humidity_meas_cluster, ESP_ZB_ZCL_ATTR_REL_HUMIDITY_MEASUREMENT_VALUE_ID, &undefined_value);
+    esp_zb_humidity_meas_cluster_add_attr(esp_zb_humidity_meas_cluster, ESP_ZB_ZCL_ATTR_REL_HUMIDITY_MEASUREMENT_MIN_VALUE_ID, &undefined_value);
+    esp_zb_humidity_meas_cluster_add_attr(esp_zb_humidity_meas_cluster, ESP_ZB_ZCL_ATTR_REL_HUMIDITY_MEASUREMENT_MAX_VALUE_ID, &undefined_value);
+
+    /* Presure cluster */
+    esp_zb_attribute_list_t *esp_zb_press_meas_cluster = esp_zb_zcl_attr_list_create(ESP_ZB_ZCL_CLUSTER_ID_PRESSURE_MEASUREMENT);
+    esp_zb_pressure_meas_cluster_add_attr(esp_zb_press_meas_cluster, ESP_ZB_ZCL_ATTR_PRESSURE_MEASUREMENT_VALUE_ID, &undefined_value);
+    esp_zb_pressure_meas_cluster_add_attr(esp_zb_press_meas_cluster, ESP_ZB_ZCL_ATTR_PRESSURE_MEASUREMENT_MIN_VALUE_ID, &undefined_value);
+    esp_zb_pressure_meas_cluster_add_attr(esp_zb_press_meas_cluster, ESP_ZB_ZCL_ATTR_PRESSURE_MEASUREMENT_MAX_VALUE_ID, &undefined_value);
+
+    /* Time cluster */
+    esp_zb_attribute_list_t *esp_zb_server_time_cluster = esp_zb_zcl_attr_list_create(ESP_ZB_ZCL_CLUSTER_ID_TIME);
+
+    /* Custom cluster for CO2 ( standart cluster not working), solution only for HOMEd */
+    const uint16_t attr_id = 0;
+    const uint8_t attr_type = ESP_ZB_ZCL_ATTR_TYPE_U16;
+    const uint8_t attr_access = ESP_ZB_ZCL_ATTR_MANUF_SPEC | ESP_ZB_ZCL_ATTR_ACCESS_READ_ONLY | ESP_ZB_ZCL_ATTR_ACCESS_REPORTING;
+
+    esp_zb_attribute_list_t *custom_co2_attributes_list = esp_zb_zcl_attr_list_create(CO2_CUSTOM_CLUSTER);
+    esp_zb_custom_cluster_add_custom_attr(custom_co2_attributes_list, attr_id, attr_type, attr_access, &undefined_value);
+
+    /** Create ota client cluster with attributes.
+     *  Manufacturer code, image type and file version should match with configured values for server.
+     *  If the client values do not match with configured values then it shall discard the command and
+     *  no further processing shall continue.
+     */
+    esp_zb_ota_cluster_cfg_t ota_cluster_cfg = {
+        .ota_upgrade_downloaded_file_ver = OTA_UPGRADE_FILE_VERSION,
+        .ota_upgrade_manufacturer = OTA_UPGRADE_MANUFACTURER,
+        .ota_upgrade_image_type = OTA_UPGRADE_IMAGE_TYPE,
+    };
+    esp_zb_attribute_list_t *esp_zb_ota_client_cluster = esp_zb_ota_cluster_create(&ota_cluster_cfg);
+    /** add client parameters to ota client cluster */
+    esp_zb_ota_upgrade_client_parameter_t ota_client_parameter_config = {
+        .query_timer = ESP_ZB_ZCL_OTA_UPGRADE_QUERY_TIMER_COUNT_DEF, /* time interval for query next image request command */
+        .hardware_version = OTA_UPGRADE_HW_VERSION,                  /* version of hardware */
+        .max_data_size = OTA_UPGRADE_MAX_DATA_SIZE,                  /* maximum data size of query block image */
+    };
+    void *ota_client_parameters = esp_zb_ota_client_parameter(&ota_client_parameter_config);
+    esp_zb_ota_cluster_add_attr(esp_zb_ota_client_cluster, ESP_ZB_ZCL_ATTR_OTA_UPGRADE_CLIENT_PARAMETER_ID, ota_client_parameters);
+
+    /* Create full cluster list enabled on device */
+    esp_zb_cluster_list_t *esp_zb_cluster_list = esp_zb_zcl_cluster_list_create();
+    esp_zb_cluster_list_add_basic_cluster(esp_zb_cluster_list, esp_zb_basic_cluster, ESP_ZB_ZCL_CLUSTER_SERVER_ROLE);
+    esp_zb_cluster_list_add_identify_cluster(esp_zb_cluster_list, esp_zb_identify_cluster, ESP_ZB_ZCL_CLUSTER_SERVER_ROLE);
+    esp_zb_cluster_list_add_temperature_meas_cluster(esp_zb_cluster_list, esp_zb_temperature_meas_cluster, ESP_ZB_ZCL_CLUSTER_SERVER_ROLE);
+    esp_zb_cluster_list_add_humidity_meas_cluster(esp_zb_cluster_list, esp_zb_humidity_meas_cluster, ESP_ZB_ZCL_CLUSTER_SERVER_ROLE);
+    esp_zb_cluster_list_add_pressure_meas_cluster(esp_zb_cluster_list, esp_zb_press_meas_cluster, ESP_ZB_ZCL_CLUSTER_SERVER_ROLE);
+    esp_zb_cluster_list_add_time_cluster(esp_zb_cluster_list, esp_zb_server_time_cluster, ESP_ZB_ZCL_CLUSTER_CLIENT_ROLE);
+    esp_zb_cluster_list_add_custom_cluster(esp_zb_cluster_list, custom_co2_attributes_list, ESP_ZB_ZCL_CLUSTER_SERVER_ROLE);
+    esp_zb_cluster_list_add_ota_cluster(esp_zb_cluster_list, esp_zb_ota_client_cluster, ESP_ZB_ZCL_CLUSTER_CLIENT_ROLE);
+
+    esp_zb_ep_list_t *esp_zb_ep_list = esp_zb_ep_list_create();
+    esp_zb_ep_list_add_ep(esp_zb_ep_list, esp_zb_cluster_list, SENSOR_ENDPOINT, ESP_ZB_AF_HA_PROFILE_ID, ESP_ZB_HA_SIMPLE_SENSOR_DEVICE_ID);
+
+    /* END */
+    esp_zb_device_register(esp_zb_ep_list);
+    esp_zb_core_action_handler_register(zb_action_handler);
+    esp_zb_set_primary_network_channel_set(ESP_ZB_PRIMARY_CHANNEL_MASK);
+    ESP_ERROR_CHECK(esp_zb_start(true));
+    esp_zb_main_loop_iteration();
 }
 
 void zigbee_init(void)
 {
-  ESP_ERROR_CHECK(nvs_flash_init());
-  /* Trace disable */
-  ZB_SET_TRAF_DUMP_OFF();
-  /* Global ZBOSS initialization */
-  ZB_INIT("Zigbee Co2 Sensor");
-
-  esp_err_t ret = ESP_OK;
-  uint8_t base_mac_addr[8];
-  ret = esp_efuse_mac_get_default(base_mac_addr);
-  if (ret != ESP_OK)
-  {
-    ESP_LOGE(TAG, "Failed to get base MAC address from EFUSE BLK0. (%s)", esp_err_to_name(ret));
-    ESP_LOGE(TAG, "Aborting");
-    abort();
-  }
-
-  zb_ieee_addr_t g_zr_addr = {base_mac_addr[7], base_mac_addr[6], base_mac_addr[5], base_mac_addr[4], base_mac_addr[3], base_mac_addr[2], base_mac_addr[1], base_mac_addr[0]};
-
-  /* Set up defaults for the commissioning */
-  zb_set_long_address(g_zr_addr);
-  zb_set_network_router_role(ZB_CUSTOM_CHANNEL_MASK);
-  zb_set_nvram_erase_at_start(ZB_FALSE);
-
-  /* Register device ZCL context */
-  ZB_AF_REGISTER_DEVICE_CTX(&custom_ctx);
-
-  /* Register cluster commands handler for a specific endpoint */
-  ZB_AF_SET_ENDPOINT_HANDLER(ENDPOINT_SERVER, zcl_specific_cluster_cmd_handler);
-
-  /* Sensair S8 init start */
-  uart_init();
-  sensair_get_info();
-  xTaskCreate(update_attr_value, "Update attr value", 4096, NULL, 2, NULL);
-  xTaskCreate(sensair_tx_task, "sensor_tx_task", 4096, NULL, 3, NULL);
-  xTaskCreate(sensair_rx_task, "sensor_rx_task", 4096, NULL, 4, NULL);
-  xTaskCreate(esp_zb_task, "Zigbee_main", 4096, NULL, 5, NULL);
-}
-
-void zb_zcl_carbon_dioxide_measurement_init_client(void)
-{
-  zb_zcl_add_cluster_handlers(ZB_ZCL_CLUSTER_ID_CARBON_DIOXIDE_MEASUREMENT,
-                              ZB_ZCL_CLUSTER_CLIENT_ROLE,
-                              (zb_zcl_cluster_check_value_t)NULL,
-                              (zb_zcl_cluster_write_attr_hook_t)NULL,
-                              (zb_zcl_cluster_handler_t)NULL);
-}
-
-zb_ret_t check_value_carbon_dioxide_attr(zb_uint16_t attr_id, zb_uint8_t endpoint, zb_uint8_t *value)
-{
-  ZVUNUSED(attr_id);
-  ZVUNUSED(endpoint);
-  ZVUNUSED(value);
-  ESP_LOGI("ZCL", "< check_value_temp_measurement ret");
-  return RET_OK;
-}
-
-/* For correct workflow of ZCL command processing at least cluster_check_value function should be defined in zb_zcl_add_cluster_handlers*/
-void zb_zcl_carbon_dioxide_measurement_init_server(void)
-{
-  ESP_LOGI(TAG, ">> zb_zcl_carbon_dioxide_measurement_init_server");
-
-  zb_zcl_add_cluster_handlers(ZB_ZCL_CLUSTER_ID_CARBON_DIOXIDE_MEASUREMENT,
-                              ZB_ZCL_CLUSTER_SERVER_ROLE,
-                              (zb_zcl_cluster_check_value_t)check_value_carbon_dioxide_attr,
-                              (zb_zcl_cluster_write_attr_hook_t)NULL,
-                              (zb_zcl_cluster_handler_t)NULL);
-
-  ESP_LOGI(TAG, "<< zb_zcl_carbon_dioxide_measurement_init_server");
-}
-
-void zb_zcl_carbon_dioxide_measurement_write_attr_hook(
-    zb_uint8_t endpoint, zb_uint16_t attr_id, zb_uint8_t *new_value)
-{
-  ZVUNUSED(new_value);
-  ZVUNUSED(endpoint);
-
-  ESP_LOGI("ZCL", ">> zb_zcl_carbon_dioxide_measurement_write_attr_hook endpoint %hd, attr_id %d",
-           endpoint, attr_id);
-
-  if (attr_id == ZB_ZCL_ATTR_CARBON_DIOXIDE_MEASUREMENT_VALUE_ID)
-  {
-    /* TODO Change min/max CO2 by current are not agree
-     * spec/
-     * Need consult with customer !*/
-  }
-
-  ESP_LOGI("ZCL", "<< zb_zcl_carbon_dioxide_measurement_write_attr_hook");
+    register_button();
+    ESP_ERROR_CHECK(i2c_master_init());
+    uart_init();
+    // sensair_get_info();
+    esp_zb_platform_config_t config = {
+        .radio_config = ESP_ZB_DEFAULT_RADIO_CONFIG(),
+        .host_config = ESP_ZB_DEFAULT_HOST_CONFIG(),
+    };
+    ESP_ERROR_CHECK(nvs_flash_init());
+    ESP_ERROR_CHECK(esp_zb_platform_config(&config));
+    if (!DEMO_MODE)
+    {
+        xTaskCreate(lcd_task, "lcd_task", 4096, NULL, 1, NULL);
+        xTaskCreate(bmx280_task, "bmx280_task", 4096, NULL, 2, NULL);
+        xTaskCreate(sensair_tx_task, "sensor_tx_task", 4096, NULL, 3, NULL);
+        xTaskCreate(sensair_rx_task, "sensor_rx_task", 4096, NULL, 4, NULL);
+    }
+    else
+    {
+        xTaskCreate(demo_task, "demo_task", 4096, NULL, 1, NULL);
+    }
+    xTaskCreate(update_attribute, "Update_attribute_value", 4096, NULL, 5, NULL);
+    xTaskCreate(esp_zb_task, "Zigbee_main", 4096, NULL, 6, NULL);
 }
