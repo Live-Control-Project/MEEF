@@ -7,14 +7,7 @@
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
 #include "zcl/esp_zigbee_zcl_common.h"
-#include "sensair_s8.h"
-#include "driver/i2c.h"
-#include "bmx280.h"
-#include "ssd1306.h"
-#include "zigbee_logo.h"
-#include "zigbee_connected.h"
-#include "zigbee_disconnected.h"
-#include "zigbee_image.h"
+
 #include "iot_button.h"
 #include <time.h>
 #include <sys/time.h>
