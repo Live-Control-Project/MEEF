@@ -1,4 +1,5 @@
 #include "zigbee_init.h"
+#include "zcl/esp_zigbee_zcl_common.h"
 #include "esp_check.h"
 #include "esp_err.h"
 #include "esp_log.h"
@@ -6,13 +7,14 @@
 #include "string.h"
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
-#include "zcl/esp_zigbee_zcl_common.h"
 
 #include "iot_button.h"
 #include <time.h>
 #include <sys/time.h>
 #include "cJSON.h"
 
+// const char *json = "[{\"id\":\"binary1\",\"pin\":16,\"cluster\":\"binary\",\"EP\":1,\"int\":50},{\"id\":\"binary2\",\"pin\":15,\"cluster\":\"binary\",\"EP\":2,\"int\":50},{\"id\":\"rele2\",\"pin\":4,\"cluster\":\"rele\",\"EP\":2},{\"id\":\"rele1\",\"pin\":1,\"cluster\":\"rele\",\"EP\":1},{\"id\":\"2\",\"sensor\":\"dht\",\"sensor_type\":\"AM2301\",\"pin\":1,\"cluster\":\"humidity\",\"EP\":1},{\"id\":\"3\",\"pin\":1,\"cluster\":\"pressure\",\"EP\":1},{\"id\":\"4\",\"sensor\":\"dht\",\"sensor_type\":\"AM2301\",\"pin\":1,\"cluster\":\"temperature\",\"EP\":1},{\"id\":\"5\",\"sensor\":\"dht\",\"sensor_type\":\"AM2301\",\"pin\":1,\"cluster\":\"temperature\",\"EP\":2},{\"id\":\"6\",\"sensor\":\"dht\",\"sensor_type\":\"AM2301\",\"pin\":1,\"cluster\":\"temperature\",\"EP\":3}]";
+const char *json = "[{\"id\":\"dht2\",\"sensor\":\"dht\",\"sensor_type\":\"AM2301\",\"pin\":15,\"int\":55,\"cluster\":\"humidity\",\"EP\":1},{\"id\":\"dht1\",\"sensor\":\"dht\",\"sensor_type\":\"AM2301\",\"pin\":15,\"int\":20,\"cluster\":\"temperature\",\"EP\":1}]";
 /*------ Clobal definitions -----------*/
 static char manufacturer[16], model[16], firmware_version[16];
 bool time_updated = false, connected = false, DEMO_MODE = true; /*< DEMO_MDE disable all real sensors and send fake data*/
@@ -71,28 +73,6 @@ static void get_rtc_time()
     strftime(strftime_buf, sizeof(strftime_buf), "%a %H:%M:%S", &timeinfo);
 }
 
-static void demo_task()
-{
-    while (1)
-    {
-        if (connected)
-        {
-            temperature = rand() % (3000 + 1 - 1000);
-            humidity = rand() % (9000 + 1 - 2000);
-            pressure = rand() % (1000 + 1 - 800);
-            CO2_value = rand() % (3000 + 1 - 400);
-            ESP_LOGI("DEMO MODE", "Temp = %d, Humm = %d, Press = %d, CO2_Value = %d", temperature, humidity, pressure, CO2_value);
-            if (time_updated)
-            {
-                get_rtc_time();
-                ESP_LOGI("DEMO MODE", "The current date/time is: %s", strftime_buf);
-            }
-        }
-        vTaskDelay(10000 / portTICK_PERIOD_MS);
-    }
-}
-/*----------------------------------------*/
-
 static void bdb_start_top_level_commissioning_cb(uint8_t mode_mask)
 {
     ESP_ERROR_CHECK(esp_zb_bdb_start_top_level_commissioning(mode_mask));
@@ -117,43 +97,56 @@ static void reportAttribute(uint8_t endpoint, uint16_t clusterID, uint16_t attri
     esp_zb_zcl_report_attr_cmd_req(&cmd);
 }
 
-/* Task for update attribute value */
-void update_attribute()
-{
-    while (1)
-    {
-        if (connected)
-        {
-            /* Write new temperature value */
-            esp_zb_zcl_status_t state_tmp = esp_zb_zcl_set_attribute_val(SENSOR_ENDPOINT, ESP_ZB_ZCL_CLUSTER_ID_TEMP_MEASUREMENT, ESP_ZB_ZCL_CLUSTER_SERVER_ROLE, ESP_ZB_ZCL_ATTR_TEMP_MEASUREMENT_VALUE_ID, &temperature, false);
-
-            /* Check for error */
-            //    if (state_tmp != ESP_ZB_ZCL_STATUS_SUCCESS)
-            //    {
-            //        ESP_LOGE(TAG, "Setting temperature attribute failed!");
-            //    }
-        }
-        vTaskDelay(5000 / portTICK_PERIOD_MS);
-    }
-}
-
 static esp_err_t zb_attribute_handler(const esp_zb_zcl_set_attr_value_message_t *message)
 {
     esp_err_t ret = ESP_OK;
+    bool rele_state = 0;
     ESP_RETURN_ON_FALSE(message, ESP_FAIL, TAG, "Empty message");
     ESP_RETURN_ON_FALSE(message->info.status == ESP_ZB_ZCL_STATUS_SUCCESS, ESP_ERR_INVALID_ARG, TAG, "Received message: error status(%d)",
                         message->info.status);
     ESP_LOGI(TAG, "Received message: endpoint(%d), cluster(0x%x), attribute(0x%x), data size(%d)", message->info.dst_endpoint, message->info.cluster,
              message->attribute.id, message->attribute.data.size);
-    if (message->info.dst_endpoint == SENSOR_ENDPOINT)
+    //  if (message->info.dst_endpoint == ENDPOINT)
+    //  {
+    switch (message->info.cluster)
     {
-        switch (message->info.cluster)
+    case ESP_ZB_ZCL_CLUSTER_ID_IDENTIFY:
+        ESP_LOGI(TAG, "Identify pressed");
+        break;
+    default:
+        ESP_LOGI(TAG, "Message data: cluster(0x%x), attribute(0x%x)  ", message->info.cluster, message->attribute.id);
+    }
+    //}
+    //---------- RELE -----------//
+    if (message->info.cluster == ESP_ZB_ZCL_CLUSTER_ID_ON_OFF)
+    {
+        if (message->attribute.id == ESP_ZB_ZCL_ATTR_ON_OFF_ON_OFF_ID && message->attribute.data.type == ESP_ZB_ZCL_ATTR_TYPE_BOOL)
         {
-        case ESP_ZB_ZCL_CLUSTER_ID_IDENTIFY:
-            ESP_LOGI(TAG, "Identify pressed");
-            break;
-        default:
-            ESP_LOGI(TAG, "Message data: cluster(0x%x), attribute(0x%x)  ", message->info.cluster, message->attribute.id);
+            //---------------------------------------------------------------------------------------------------------------//
+            cJSON *json_data = cJSON_Parse(json);
+            if (json_data == NULL)
+            {
+                printf("Error parsing JSON.\n");
+                // goto end;
+            }
+            cJSON *item = json_data->child;
+            while (item != NULL)
+            {
+                cJSON *obj = cJSON_GetObjectItem(item, "EP");
+                if (obj)
+                {
+                    char *cluster = cJSON_GetObjectItem(item, "cluster")->valuestring;
+                    if (message->info.dst_endpoint == cJSON_GetObjectItem(item, "EP")->valueint && strcmp(cluster, "rele") == 0)
+                    {
+                        int pin = cJSON_GetObjectItem(item, "pin")->valueint;
+                        rele_state = message->attribute.data.value ? *(bool *)message->attribute.data.value : rele_state;
+                        gpio_set_level(pin, rele_state);
+                        ESP_LOGI(TAG, "PIN %d sets to %s", pin, rele_state ? "On" : "Off");
+                    }
+                }
+                item = item->next;
+            }
+            cJSON_Delete(json_data);
         }
     }
     return ret;
@@ -167,7 +160,7 @@ static esp_err_t zb_read_attr_resp_handler(const esp_zb_zcl_cmd_read_attr_resp_m
     ESP_LOGI(TAG, "Read attribute response: status(%d), cluster(0x%x), attribute(0x%x), type(0x%x), value(%d)", message->info.status,
              message->info.cluster, message->attribute.id, message->attribute.data.type,
              message->attribute.data.value ? *(uint8_t *)message->attribute.data.value : 0);
-    if (message->info.dst_endpoint == SENSOR_ENDPOINT)
+    if (message->info.dst_endpoint == ENDPOINT)
     {
         switch (message->info.cluster)
         {
@@ -259,11 +252,40 @@ void esp_zb_app_signal_handler(esp_zb_app_signal_t *signal_struct)
         break;
     }
 }
-
 static void set_zcl_string(char *buffer, char *value)
 {
     buffer[0] = (char)strlen(value);
     memcpy(buffer + 1, value, buffer[0]);
+}
+
+#define MAX_CLUSTER_LISTS 100
+// Определение структуры для хранения списка кластеров и его индекса
+typedef struct
+{
+    int index;
+    esp_zb_cluster_list_t *cluster_list;
+} ClusterListInfo;
+
+ClusterListInfo cluster_lists[MAX_CLUSTER_LISTS];
+// Функция для получения существующего списка кластеров или создания нового
+esp_zb_cluster_list_t *get_existing_or_create_new_list(int index)
+{
+    if (index < 0 || index >= MAX_CLUSTER_LISTS)
+    {
+        // Обработка недопустимого индекса
+        return NULL;
+    }
+    // Получение информации о списке кластеров по заданному индексу
+    ClusterListInfo *info = &cluster_lists[index];
+    // Проверка существования списка кластеров
+    if (!info->cluster_list)
+    {
+        // Если список кластеров не существует, то создаем новый
+        info->cluster_list = esp_zb_zcl_cluster_list_create();
+        info->index = index;
+    }
+    // Возвращаем существующий или только что созданный список кластеров
+    return info->cluster_list;
 }
 
 static void esp_zb_task(void *pvParameters)
@@ -315,8 +337,10 @@ static void esp_zb_task(void *pvParameters)
     void *ota_client_parameters = esp_zb_ota_client_parameter(&ota_client_parameter_config);
     esp_zb_ota_cluster_add_attr(esp_zb_ota_client_cluster, ESP_ZB_ZCL_ATTR_OTA_UPGRADE_CLIENT_PARAMETER_ID, ota_client_parameters);
 
-    /* Create full cluster list enabled on device */
-    esp_zb_cluster_list_t *esp_zb_cluster_list = esp_zb_zcl_cluster_list_create();
+    /* Create main cluster list enabled on device */
+    int EP = ENDPOINT;
+    esp_zb_cluster_list_t *esp_zb_cluster_list = get_existing_or_create_new_list(EP);
+    // esp_zb_cluster_list_t *esp_zb_cluster_list = esp_zb_zcl_cluster_list_create();
     esp_zb_cluster_list_add_basic_cluster(esp_zb_cluster_list, esp_zb_basic_cluster, ESP_ZB_ZCL_CLUSTER_SERVER_ROLE);
     esp_zb_cluster_list_add_identify_cluster(esp_zb_cluster_list, esp_zb_identify_cluster, ESP_ZB_ZCL_CLUSTER_SERVER_ROLE);
     esp_zb_cluster_list_add_time_cluster(esp_zb_cluster_list, esp_zb_server_time_cluster, ESP_ZB_ZCL_CLUSTER_CLIENT_ROLE);
@@ -324,41 +348,84 @@ static void esp_zb_task(void *pvParameters)
 
     esp_zb_ep_list_t *esp_zb_ep_list = esp_zb_ep_list_create();
 
-    cJSON *root;
-    root = cJSON_CreateObject();
-
-    cJSON_AddStringToObject(root, "cluster", "temperature");
-    cJSON_AddNumberToObject(root, "cluster_list", 0);
-    cJSON_AddNumberToObject(root, "EP", 1);
-
-    cJSON *obj = cJSON_GetObjectItem(root, "cluster");
-    if (obj)
+    //---------------------------------------------------------------------------------------------------------------//
+    cJSON *json_data = cJSON_Parse(json);
+    if (json_data == NULL)
     {
-        char *cluster = cJSON_GetObjectItem(root, "cluster")->valuestring;
+        printf("Error parsing JSON.\n");
+        // goto end;
+    }
+    cJSON *item = json_data->child;
+    while (item != NULL)
+    {
+        cJSON *obj = cJSON_GetObjectItem(item, "cluster");
 
-        ESP_LOGI(TAG, "cluster=%s", cJSON_GetObjectItem(root, "cluster")->valuestring);
-        if (strcmp(cluster, "temperature") == 0) // Changed from single quotes to double quotes
+        if (obj)
         {
-            ESP_LOGI(TAG, "cluster=%s", cJSON_GetObjectItem(root, "cluster")->valuestring);
-            // 3 - Создаем кластеры
-            esp_zb_attribute_list_t *esp_zb_temperature_meas_cluster = esp_zb_zcl_attr_list_create(ESP_ZB_ZCL_CLUSTER_ID_TEMP_MEASUREMENT);
-            esp_zb_temperature_meas_cluster_add_attr(esp_zb_temperature_meas_cluster, ESP_ZB_ZCL_ATTR_TEMP_MEASUREMENT_VALUE_ID, &undefined_value);
-            esp_zb_temperature_meas_cluster_add_attr(esp_zb_temperature_meas_cluster, ESP_ZB_ZCL_ATTR_TEMP_MEASUREMENT_MIN_VALUE_ID, &undefined_value);
-            esp_zb_temperature_meas_cluster_add_attr(esp_zb_temperature_meas_cluster, ESP_ZB_ZCL_ATTR_TEMP_MEASUREMENT_MAX_VALUE_ID, &undefined_value);
+            char *cluster = cJSON_GetObjectItem(item, "cluster")->valuestring;
 
-            // 2 - Запихиваем в cluster_list
-            int cluster_list = cJSON_GetObjectItem(root, "cluster_list")->valueint;
-            if (cluster_list == 0)
+            int EP = cJSON_GetObjectItem(item, "EP")->valueint;
+            esp_zb_cluster_list_t *esp_zb_cluster_list = get_existing_or_create_new_list(EP);
+
+            if (strcmp(cluster, "temperature") == 0)
             {
+                esp_zb_attribute_list_t *esp_zb_temperature_meas_cluster = esp_zb_zcl_attr_list_create(ESP_ZB_ZCL_CLUSTER_ID_TEMP_MEASUREMENT);
+                esp_zb_temperature_meas_cluster_add_attr(esp_zb_temperature_meas_cluster, ESP_ZB_ZCL_ATTR_TEMP_MEASUREMENT_VALUE_ID, &undefined_value);
+                esp_zb_temperature_meas_cluster_add_attr(esp_zb_temperature_meas_cluster, ESP_ZB_ZCL_ATTR_TEMP_MEASUREMENT_MIN_VALUE_ID, &undefined_value);
+                esp_zb_temperature_meas_cluster_add_attr(esp_zb_temperature_meas_cluster, ESP_ZB_ZCL_ATTR_TEMP_MEASUREMENT_MAX_VALUE_ID, &undefined_value);
                 esp_zb_cluster_list_add_temperature_meas_cluster(esp_zb_cluster_list, esp_zb_temperature_meas_cluster, ESP_ZB_ZCL_CLUSTER_SERVER_ROLE);
             }
-            // 1 - Создаем EP
-            int EP = cJSON_GetObjectItem(root, "EP")->valueint;
-            esp_zb_ep_list_add_ep(esp_zb_ep_list, esp_zb_cluster_list, EP, ESP_ZB_AF_HA_PROFILE_ID, ESP_ZB_HA_SIMPLE_SENSOR_DEVICE_ID);
+
+            else if (strcmp(cluster, "humidity") == 0)
+            {
+                esp_zb_attribute_list_t *esp_zb_humidity_meas_cluster = esp_zb_zcl_attr_list_create(ESP_ZB_ZCL_CLUSTER_ID_REL_HUMIDITY_MEASUREMENT);
+                esp_zb_humidity_meas_cluster_add_attr(esp_zb_humidity_meas_cluster, ESP_ZB_ZCL_ATTR_REL_HUMIDITY_MEASUREMENT_VALUE_ID, &undefined_value);
+                esp_zb_humidity_meas_cluster_add_attr(esp_zb_humidity_meas_cluster, ESP_ZB_ZCL_ATTR_REL_HUMIDITY_MEASUREMENT_MIN_VALUE_ID, &undefined_value);
+                esp_zb_humidity_meas_cluster_add_attr(esp_zb_humidity_meas_cluster, ESP_ZB_ZCL_ATTR_REL_HUMIDITY_MEASUREMENT_MAX_VALUE_ID, &undefined_value);
+                esp_zb_cluster_list_add_humidity_meas_cluster(esp_zb_cluster_list, esp_zb_humidity_meas_cluster, ESP_ZB_ZCL_CLUSTER_SERVER_ROLE);
+            }
+            else if (strcmp(cluster, "pressure") == 0)
+            {
+                esp_zb_attribute_list_t *esp_zb_press_meas_cluster = esp_zb_zcl_attr_list_create(ESP_ZB_ZCL_CLUSTER_ID_PRESSURE_MEASUREMENT);
+                esp_zb_pressure_meas_cluster_add_attr(esp_zb_press_meas_cluster, ESP_ZB_ZCL_ATTR_PRESSURE_MEASUREMENT_VALUE_ID, &undefined_value);
+                esp_zb_pressure_meas_cluster_add_attr(esp_zb_press_meas_cluster, ESP_ZB_ZCL_ATTR_PRESSURE_MEASUREMENT_MIN_VALUE_ID, &undefined_value);
+                esp_zb_pressure_meas_cluster_add_attr(esp_zb_press_meas_cluster, ESP_ZB_ZCL_ATTR_PRESSURE_MEASUREMENT_MAX_VALUE_ID, &undefined_value);
+                esp_zb_cluster_list_add_pressure_meas_cluster(esp_zb_cluster_list, esp_zb_press_meas_cluster, ESP_ZB_ZCL_CLUSTER_SERVER_ROLE);
+            }
+            else if (strcmp(cluster, "rele") == 0)
+            {
+                // ------------------------------ Cluster RELE ------------------------------
+                esp_zb_on_off_cluster_cfg_t on_off_cfg = {
+                    .on_off = 0,
+                };
+                esp_zb_attribute_list_t *esp_zb_on_off_cluster = esp_zb_on_off_cluster_create(&on_off_cfg);
+                esp_zb_cluster_list_add_on_off_cluster(esp_zb_cluster_list, esp_zb_on_off_cluster, ESP_ZB_ZCL_CLUSTER_SERVER_ROLE);
+            }
+            else if (strcmp(cluster, "binary") == 0)
+            {
+                // ------------------------------ Cluster BINARY INPUT ------------------------------
+                esp_zb_binary_input_cluster_cfg_t binary_input_cfg = {
+                    .out_of_service = 0,
+                    .status_flags = 0,
+                };
+                uint8_t present_value = 0;
+                esp_zb_attribute_list_t *esp_zb_binary_input_cluster = esp_zb_binary_input_cluster_create(&binary_input_cfg);
+                esp_zb_binary_input_cluster_add_attr(esp_zb_binary_input_cluster, ESP_ZB_ZCL_ATTR_BINARY_INPUT_PRESENT_VALUE_ID, &present_value);
+                esp_zb_cluster_list_add_binary_input_cluster(esp_zb_cluster_list, esp_zb_binary_input_cluster, ESP_ZB_ZCL_CLUSTER_SERVER_ROLE);
+            }
+        }
+        item = item->next;
+    }
+    cJSON_Delete(json_data);
+
+    for (int i = 0; i < MAX_CLUSTER_LISTS; i++)
+    {
+        if (cluster_lists[i].cluster_list)
+        {
+            esp_zb_ep_list_add_ep(esp_zb_ep_list, cluster_lists[i].cluster_list, i, ESP_ZB_AF_HA_PROFILE_ID, ESP_ZB_HA_SIMPLE_SENSOR_DEVICE_ID);
         }
     }
-    cJSON_Delete(root);
-
+    //---------------------------------------------------------------------------------------------------------------//
     esp_zb_device_register(esp_zb_ep_list);
     esp_zb_core_action_handler_register(zb_action_handler);
     esp_zb_set_primary_network_channel_set(ESP_ZB_PRIMARY_CHANNEL_MASK);
@@ -368,6 +435,7 @@ static void esp_zb_task(void *pvParameters)
 
 void zigbee_init(void)
 {
+
     register_button();
 
     // sensair_get_info();
@@ -377,13 +445,6 @@ void zigbee_init(void)
     };
     ESP_ERROR_CHECK(nvs_flash_init());
     ESP_ERROR_CHECK(esp_zb_platform_config(&config));
-    if (!DEMO_MODE)
-    {
-    }
-    else
-    {
-        xTaskCreate(demo_task, "demo_task", 4096, NULL, 1, NULL);
-    }
-    xTaskCreate(update_attribute, "Update_attribute_value", 4096, NULL, 5, NULL);
+
     xTaskCreate(esp_zb_task, "Zigbee_main", 4096, NULL, 6, NULL);
 }

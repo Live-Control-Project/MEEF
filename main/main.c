@@ -8,6 +8,7 @@
 #include "zigbee_init.h"
 #include "esp_mac.h"
 #include "zcl/zb_zcl_reporting.h"
+#include "sensor_init.h"
 
 #define ESP_ZIGBEE_ENABLED true
 
@@ -15,4 +16,5 @@ void app_main(void)
 {
 
     zigbee_init();
+    sensor_init();
 }

@@ -3,11 +3,7 @@
 /* Zigbee configuration */
 #define MAX_CHILDREN 10                 /* the max amount of connected devices */
 #define INSTALLCODE_POLICY_ENABLE false /* enable the install code policy for security */
-#define SENSOR_ENDPOINT 1
-#define SENSOR_ENDPOINT2 2
-#define SENSOR_ENDPOINT3 3
-#define SENSOR_ENDPOINT4 4
-#define SENSOR_ENDPOINT5 5
+#define ENDPOINT 1
 
 #define CO2_CUSTOM_CLUSTER 0xFFF2                                        /* Custom cluster used because standart cluster not working*/
 #define ESP_ZB_PRIMARY_CHANNEL_MASK ESP_ZB_TRANSCEIVER_ALL_CHANNELS_MASK /* Zigbee primary channel mask use in the example */
@@ -40,4 +36,5 @@
     }
 
 void zigbee_init(void);
+void button_task(void *pvParameters);
 void app_main(void);
