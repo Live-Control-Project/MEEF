@@ -115,7 +115,7 @@ void sensor_dht(const char *sensor_json)
                     .param_int = cJSON_GetObjectItem(item, "int")->valueint,
                     .param_cluster = cJSON_GetObjectItem(item, "cluster")->valuestring,
                     .param_id = cJSON_GetObjectItem(item, "id")->valuestring,
-                    .param_sensor_type = cJSON_GetObjectItem(item, "sensor_type")->valuestring,
+                    //     .param_sensor_type = cJSON_GetObjectItem(item, "sensor_type")->valuestring,
                 };
 
                 xTaskCreate(sensor_dht_task, cJSON_GetObjectItem(item, "id")->valuestring, 4096, &taskParams, 5, NULL);
