@@ -13,15 +13,15 @@
 #include <sys/time.h>
 #include "cJSON.h"
 
-// const char *json = "[{\"id\":\"binary1\",\"pin\":16,\"cluster\":\"binary\",\"EP\":1,\"int\":5},{\"id\":\"binary2\",\"pin\":15,\"cluster\":\"binary\",\"EP\":2,\"int\":5},{\"id\":\"rele2\",\"pin\":4,\"cluster\":\"rele\",\"EP\":2},{\"id\":\"rele1\",\"pin\":1,\"cluster\":\"rele\",\"EP\":1},{\"id\":\"2\",\"sensor\":\"dht\",\"sensor_type\":\"AM2301\",\"pin\":1,\"cluster\":\"humidity\",\"EP\":1},{\"id\":\"3\",\"pin\":1,\"cluster\":\"pressure\",\"EP\":1},{\"id\":\"4\",\"sensor\":\"dht\",\"sensor_type\":\"AM2301\",\"pin\":1,\"cluster\":\"temperature\",\"EP\":1},{\"id\":\"5\",\"sensor\":\"dht\",\"sensor_type\":\"AM2301\",\"pin\":1,\"cluster\":\"temperature\",\"EP\":2},{\"id\":\"6\",\"sensor\":\"dht\",\"sensor_type\":\"AM2301\",\"pin\":1,\"cluster\":\"temperature\",\"EP\":3}]";
-const char *json = "[{\"id\":\"dht2\",\"sensor\":\"dht\",\"sensor_type\":\"AM2301\",\"pin\":15,\"int\":55,\"cluster\":\"humidity\",\"EP\":1},{\"id\":\"dht1\",\"sensor\":\"dht\",\"sensor_type\":\"AM2301\",\"pin\":15,\"int\":20,\"cluster\":\"temperature\",\"EP\":1}]";
+extern const char *sensor_json;
+
 /*------ Clobal definitions -----------*/
 static char manufacturer[16], model[16], firmware_version[16];
-bool time_updated = false, connected = false, DEMO_MODE = true; /*< DEMO_MDE disable all real sensors and send fake data*/
-int lcd_timeout = 30;
-uint8_t screen_number = 0;
-uint16_t temperature = 0, humidity = 0, pressure = 0, CO2_value = 0;
-float temp = 0, pres = 0, hum = 0;
+bool time_updated = false, connected = false;
+// int lcd_timeout = 30;
+// uint8_t screen_number = 0;
+// uint16_t temperature = 0, humidity = 0, pressure = 0, CO2_value = 0;
+// float temp = 0, pres = 0, hum = 0;
 char strftime_buf[64];
 static const char *TAG = "ZIGBEE";
 
@@ -123,7 +123,7 @@ static esp_err_t zb_attribute_handler(const esp_zb_zcl_set_attr_value_message_t 
         if (message->attribute.id == ESP_ZB_ZCL_ATTR_ON_OFF_ON_OFF_ID && message->attribute.data.type == ESP_ZB_ZCL_ATTR_TYPE_BOOL)
         {
             //---------------------------------------------------------------------------------------------------------------//
-            cJSON *json_data = cJSON_Parse(json);
+            cJSON *json_data = cJSON_Parse(sensor_json);
             if (json_data == NULL)
             {
                 printf("Error parsing JSON.\n");
@@ -349,7 +349,7 @@ static void esp_zb_task(void *pvParameters)
     esp_zb_ep_list_t *esp_zb_ep_list = esp_zb_ep_list_create();
 
     //---------------------------------------------------------------------------------------------------------------//
-    cJSON *json_data = cJSON_Parse(json);
+    cJSON *json_data = cJSON_Parse(sensor_json);
     if (json_data == NULL)
     {
         printf("Error parsing JSON.\n");

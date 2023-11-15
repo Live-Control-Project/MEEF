@@ -36,22 +36,28 @@ static void sensor_dht_task(void *pvParameters)
 {
 
     TaskParameters *params = (TaskParameters *)pvParameters;
-    char *dht_id = params->param_id;
-    int dht_pin = params->param_pin;
-    char *dht_cluster = params->param_cluster;
-    int dht_ep = params->param_ep;
-    int dht_int = params->param_int * 1000;
-    char *dht_sensor_type = params->param_sensor_type;
+    char *param_id = params->param_id;
+    char id[30] = "";
+    strcpy(id, param_id);
+    int param_pin = params->param_pin;
+    char *param_cluster = params->param_cluster;
+    char cluster[30] = "";
+    strcpy(cluster, param_cluster);
+    int param_ep = params->param_ep;
+    int param_int = params->param_int * 1000;
+    char *param_sensor_type = params->param_sensor_type;
+    char sensor_type[30] = "";
+    strcpy(sensor_type, param_sensor_type);
 
-    if (strcmp(dht_sensor_type, "DHT11") == 0)
+    if (strcmp(sensor_type, "DHT11") == 0)
     {
 #define SENSOR_TYPE DHT_TYPE_DHT11
     }
-    else if (strcmp(dht_sensor_type, "AM2301") == 0)
+    else if (strcmp(sensor_type, "AM2301") == 0)
     {
 #define SENSOR_TYPE DHT_TYPE_AM2301
     }
-    else if (strcmp(dht_sensor_type, "SI7021") == 0)
+    else if (strcmp(sensor_type, "SI7021") == 0)
     {
 #define SENSOR_TYPE DHT_TYPE_SI7021
     }
@@ -64,28 +70,38 @@ static void sensor_dht_task(void *pvParameters)
 
     while (1)
     {
-        if (dht_read_float_data(SENSOR_TYPE, dht_pin, &humidity, &temperature) == ESP_OK)
+        if (dht_read_float_data(SENSOR_TYPE, param_pin, &humidity, &temperature) == ESP_OK)
         {
-            ESP_LOGI(TAG, "Humidity: %.1f%% Temp: %.1fC", humidity, temperature);
-            ESP_LOGI(TAG, "dht_cluster: %s", dht_cluster);
-            ESP_LOGI(TAG, "dht_sensor_type: %s", dht_sensor_type);
+            // ESP_LOGI(TAG, "Humidity: %.1f%% Temp: %.1fC", humidity, temperature);
+            // ESP_LOGI(TAG, "dht_cluster: %s", cluster);
+            // ESP_LOGI(TAG, "dht_sensor_type: %s", sensor_type);
 
-            if (strcmp(dht_cluster, "temperature") == 0)
+            if (strcmp(cluster, "temperature") == 0)
             {
-                reportAttribute(dht_ep, ESP_ZB_ZCL_CLUSTER_ID_TEMP_MEASUREMENT, ESP_ZB_ZCL_ATTR_TEMP_MEASUREMENT_VALUE_ID, &temperature, 2);
-                ESP_LOGI(TAG, "Temp: %.1fC", temperature);
+                ESP_LOGI(TAG, "Temp: %.1fC  EP%d: ", temperature, param_ep);
+                uint16_t dht_temp = (uint16_t)(temperature * 100);
+                esp_zb_zcl_status_t state_tmp = esp_zb_zcl_set_attribute_val(param_ep, ESP_ZB_ZCL_CLUSTER_ID_TEMP_MEASUREMENT, ESP_ZB_ZCL_CLUSTER_SERVER_ROLE, ESP_ZB_ZCL_ATTR_TEMP_MEASUREMENT_VALUE_ID, &dht_temp, false);
+                if (state_tmp != ESP_ZB_ZCL_STATUS_SUCCESS)
+                {
+                    ESP_LOGE(TAG, "Setting temperature attribute failed!");
+                }
             }
-            else if (strcmp(dht_cluster, "humidity") == 0)
+            else if (strcmp(cluster, "humidity") == 0)
             {
-                ESP_LOGI(TAG, "Humidity: %.1f%% ", humidity);
-                reportAttribute(dht_ep, ESP_ZB_ZCL_CLUSTER_ID_REL_HUMIDITY_MEASUREMENT, ESP_ZB_ZCL_ATTR_REL_HUMIDITY_MEASUREMENT_VALUE_ID, &humidity, 2);
+                ESP_LOGI(TAG, "Humidity: %.1f%% EP%d: ", humidity, param_ep);
+                uint16_t dht_hum = (uint16_t)(humidity * 100);
+                esp_zb_zcl_status_t state_hum = esp_zb_zcl_set_attribute_val(param_ep, ESP_ZB_ZCL_CLUSTER_ID_REL_HUMIDITY_MEASUREMENT, ESP_ZB_ZCL_CLUSTER_SERVER_ROLE, ESP_ZB_ZCL_ATTR_REL_HUMIDITY_MEASUREMENT_VALUE_ID, &dht_hum, false);
+                if (state_hum != ESP_ZB_ZCL_STATUS_SUCCESS)
+                {
+                    ESP_LOGE(TAG, "Setting humidity attribute failed!");
+                }
             }
         }
         else
         {
             ESP_LOGE(TAG, "Could not read data from sensor");
         }
-        vTaskDelay(dht_int / portTICK_PERIOD_MS);
+        vTaskDelay(param_int / portTICK_PERIOD_MS);
     }
 }
 //----------------------------------//
@@ -115,7 +131,7 @@ void sensor_dht(const char *sensor_json)
                     .param_int = cJSON_GetObjectItem(item, "int")->valueint,
                     .param_cluster = cJSON_GetObjectItem(item, "cluster")->valuestring,
                     .param_id = cJSON_GetObjectItem(item, "id")->valuestring,
-                    //     .param_sensor_type = cJSON_GetObjectItem(item, "sensor_type")->valuestring,
+                    .param_sensor_type = cJSON_GetObjectItem(item, "sensor_type")->valuestring,
                 };
 
                 xTaskCreate(sensor_dht_task, cJSON_GetObjectItem(item, "id")->valuestring, 4096, &taskParams, 5, NULL);

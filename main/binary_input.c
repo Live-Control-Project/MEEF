@@ -4,11 +4,11 @@
 #include "zcl/esp_zigbee_zcl_common.h"
 #include "esp_log.h"
 #include "esp_err.h"
-#include "iot_button.h"
-#include "binary_input.h"
 #include "cJSON.h"
 #include "string.h"
 #include "sensor.h"
+#include "iot_button.h"
+#include "binary_input.h"
 
 static const char *TAG = "binary_input";
 /* Manual reporting atribute to coordinator */
@@ -34,10 +34,17 @@ void vTaskCode(void *pvParameters)
 {
     TaskParameters *params = (TaskParameters *)pvParameters;
     char *param_id = params->param_id;
+    char id[30] = "";
+    strcpy(id, param_id);
     int param_pin = params->param_pin;
     char *param_cluster = params->param_cluster;
+    char cluster[30] = "";
+    strcpy(cluster, param_cluster);
     int param_ep = params->param_ep;
-    int param_int = params->param_int;
+    int param_int = params->param_int * 1000;
+    char *param_sensor_type = params->param_sensor_type;
+    char sensor_type[30] = "";
+    strcpy(sensor_type, param_sensor_type);
 
     // ESP_LOGI(TAG, "param_cluster add: %d", param_ep);
 
@@ -74,14 +81,14 @@ void binary_input(const char *sensor_json)
             char *cluster = cJSON_GetObjectItem(item, "cluster")->valuestring;
             if (strcmp(cluster, "binary") == 0)
             {
-                // int pin = cJSON_GetObjectItem(item, "pin")->valueint;
-                // char *id = cJSON_GetObjectItem(item, "id")->valuestring;
+
                 TaskParameters taskParams = {
                     .param_pin = cJSON_GetObjectItem(item, "pin")->valueint,
                     .param_ep = cJSON_GetObjectItem(item, "EP")->valueint,
                     .param_int = cJSON_GetObjectItem(item, "int")->valueint,
                     .param_cluster = cJSON_GetObjectItem(item, "cluster")->valuestring,
                     .param_id = cJSON_GetObjectItem(item, "id")->valuestring,
+                    .param_sensor_type = cJSON_GetObjectItem(item, "sensor_type")->valuestring,
                 };
 
                 xTaskCreate(vTaskCode, cJSON_GetObjectItem(item, "id")->valuestring, 4096, &taskParams, 5, NULL);
