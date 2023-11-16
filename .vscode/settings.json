@@ -10,7 +10,20 @@
         "sensair_s8.h": "c",
         "compare": "c",
         "zb_zcl_reporting.h": "c",
-        "zigbee_utils": "c"
+        "zigbee_utils": "c",
+        "esp_check.h": "c",
+        "zigbee_disconnected.h": "c",
+        "chrono": "c",
+        "random": "c",
+        "sensor_init.h": "c",
+        "bmx280.h": "c",
+        "binary_input.h": "c",
+        "sensor_dht.h": "c",
+        "dht.h": "c",
+        "string": "c",
+        "string.h": "c",
+        "sensor_example.h": "c"
     },
-    "idf.adapterTargetName": "esp32c6"
+    "idf.adapterTargetName": "esp32c6",
+    "C_Cpp.errorSquiggles": "disabled"
 }
