@@ -9,15 +9,89 @@
 #include "esp_mac.h"
 #include "zcl/zb_zcl_reporting.h"
 #include "sensor_init.h"
-
+#include "esp_spiffs.h"
+#include <string.h>
+#include "cJSON.h"
 #define ESP_ZIGBEE_ENABLED true
 
-// const char *sensor_json = "[{\"id\":\"binary1\",\"sensor\":\"\",\"pin\":16,\"cluster\":\"binary\",\"sensor_type\":\"\",\"EP\":1,\"int\":5},{\"id\":\"binary2\",\"sensor\":\"\",\"pin\":14,\"cluster\":\"binary\",\"sensor_type\":\"\",\"EP\":2,\"int\":5},{\"id\":\"rele2\",\"sensor\":\"\",\"pin\":4,\"cluster\":\"rele\",\"sensor_type\":\"\",\"EP\":2,\"int\":25},{\"id\":\"rele1\",\"sensor\":\"\",\"pin\":1,\"cluster\":\"rele\",\"sensor_type\":\"\",\"EP\":1,\"int\":25},{\"id\":\"2\",\"sensor\":\"dht\",\"sensor_type\":\"AM2301\",\"pin\":15,\"cluster\":\"humidity\",\"EP\":1,\"int\":25},{\"id\":\"3\",\"sensor\":\"\",\"pin\":1,\"cluster\":\"pressure\",\"sensor_type\":\"\",\"EP\":1,\"int\":25},{\"id\":\"4\",\"sensor\":\"dht\",\"sensor_type\":\"AM2301\",\"pin\":15,\"cluster\":\"temperature\",\"EP\":1,\"int\":35},{\"id\":\"5\",\"sensor\":\"dht\",\"sensor_type\":\"AM2301\",\"pin\":15,\"cluster\":\"temperature\",\"EP\":2,\"int\":45},{\"id\":\"6\",\"sensor\":\"dht\",\"sensor_type\":\"AM2301\",\"pin\":15,\"cluster\":\"temperature\",\"EP\":3,\"int\":55}]";
-
-// dht
-const char *sensor_json = "[{\"id\":\"id3\",\"sensor\":\"dht\",\"sensor_type\":\"AM2301\",\"pin\":15,\"int\":25,\"cluster\":\"temperature\",\"EP\":2},{\"id\":\"id2\",\"sensor\":\"dht\",\"sensor_type\":\"AM2301\",\"pin\":15,\"int\":20,\"cluster\":\"temperature\",\"EP\":1},{\"id\":\"id1\",\"sensor\":\"dht\",\"sensor_type\":\"AM2301\",\"pin\":15,\"int\":15,\"cluster\":\"humidity\",\"EP\":1}]";
+cJSON *sensor_json = NULL;
+static const char *TAG = "MAIN";
 void app_main(void)
 {
+    esp_vfs_spiffs_conf_t config = {
+        .base_path = "/spiffs_data",
+        .partition_label = NULL,
+        .max_files = 5,
+        .format_if_mount_failed = true,
+    };
+    esp_vfs_spiffs_register(&config);
+
+    FILE *file = fopen("/spiffs_data/settings.json", "r");
+    if (file == NULL)
+    {
+        ESP_LOGE(TAG, "File does not exist!");
+    }
+    else
+    {
+
+        fseek(file, 0, SEEK_END);
+        long file_size = ftell(file);
+        fseek(file, 0, SEEK_SET);
+
+        char *json_buffer = (char *)malloc(file_size + 1);
+        if (json_buffer == NULL)
+        {
+            ESP_LOGE(TAG, "Memory allocation failed!");
+            fclose(file);
+            esp_vfs_spiffs_unregister(NULL);
+            return;
+        }
+
+        size_t bytes_read = fread(json_buffer, 1, file_size, file);
+        json_buffer[bytes_read] = '\0'; // Null-terminate the string
+
+        fclose(file);
+        //
+        sensor_json = cJSON_Parse(json_buffer);
+        if (sensor_json == NULL)
+        {
+
+            const char *error_ptr = cJSON_GetErrorPtr();
+            if (error_ptr != NULL)
+            {
+                ESP_LOGE(TAG, "Error before: %s", error_ptr);
+            }
+            cJSON_Delete(sensor_json);
+            esp_vfs_spiffs_unregister(NULL);
+            return;
+        }
+
+        // Далее можно работать с объектом JSON, например:
+        /*
+        cJSON *item = sensor_json->child;
+        while (item != NULL)
+        {
+            cJSON *sensor = cJSON_GetObjectItemCaseSensitive(item, "sensor");
+            cJSON *id = cJSON_GetObjectItemCaseSensitive(item, "id");
+            cJSON *pin = cJSON_GetObjectItemCaseSensitive(item, "pin");
+            cJSON *ep = cJSON_GetObjectItemCaseSensitive(item, "EP");
+            cJSON *cluster = cJSON_GetObjectItemCaseSensitive(item, "claster");
+            if (cJSON_IsString(sensor) && cJSON_IsString(id) && cJSON_IsNumber(pin) && cJSON_IsNumber(ep) && cJSON_IsString(cluster))
+            {
+                char *cluster1 = cluster->valuestring;
+                int EP1 = ep->valueint;
+                //  printf(cluster1);
+            }
+            item = item->next;
+        }
+
+                cJSON_Delete(sensor_json);
+        */
+
+        free(json_buffer); // Free the allocated buffer
+    }
+
+    esp_vfs_spiffs_unregister(NULL);
 
     zigbee_init();
     sensor_init();

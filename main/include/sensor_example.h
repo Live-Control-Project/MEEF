@@ -1,1 +1,2 @@
-void sensor_example(const char *sensor_json);
+#include "cJSON.h"
+void sensor_example(cJSON *sensor_json);

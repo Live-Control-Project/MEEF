@@ -1,1 +1,2 @@
-void sensor_dht(const char *sensor_json);
+#include "cJSON.h"
+void sensor_dht(cJSON *sensor_json);

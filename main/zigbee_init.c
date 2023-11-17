@@ -13,8 +13,7 @@
 #include <sys/time.h>
 #include "cJSON.h"
 
-extern const char *sensor_json;
-
+extern cJSON *sensor_json;
 /*------ Clobal definitions -----------*/
 static char manufacturer[16], model[16], firmware_version[16];
 bool time_updated = false, connected = false;
@@ -123,22 +122,18 @@ static esp_err_t zb_attribute_handler(const esp_zb_zcl_set_attr_value_message_t 
         if (message->attribute.id == ESP_ZB_ZCL_ATTR_ON_OFF_ON_OFF_ID && message->attribute.data.type == ESP_ZB_ZCL_ATTR_TYPE_BOOL)
         {
             //---------------------------------------------------------------------------------------------------------------//
-            cJSON *json_data = cJSON_Parse(sensor_json);
-            if (json_data == NULL)
-            {
-                printf("Error parsing JSON.\n");
-                // goto end;
-            }
-            cJSON *item = json_data->child;
+            cJSON *item = sensor_json->child;
             while (item != NULL)
             {
-                cJSON *obj = cJSON_GetObjectItem(item, "EP");
-                if (obj)
+                cJSON *ep_ = cJSON_GetObjectItemCaseSensitive(item, "EP");
+                cJSON *cluster_ = cJSON_GetObjectItemCaseSensitive(item, "claster");
+                if (cJSON_IsNumber(ep_) && cJSON_IsString(cluster_))
                 {
-                    char *cluster = cJSON_GetObjectItem(item, "cluster")->valuestring;
-                    if (message->info.dst_endpoint == cJSON_GetObjectItem(item, "EP")->valueint && strcmp(cluster, "rele") == 0)
+                    char *cluster = cluster_->valuestring;
+                    int EP = ep_->valueint;
+                    if (message->info.dst_endpoint == EP && strcmp(cluster, "rele") == 0)
                     {
-                        int pin = cJSON_GetObjectItem(item, "pin")->valueint;
+                        int pin = cJSON_GetObjectItemCaseSensitive(item, "pin")->valueint;
                         rele_state = message->attribute.data.value ? *(bool *)message->attribute.data.value : rele_state;
                         gpio_set_level(pin, rele_state);
                         ESP_LOGI(TAG, "PIN %d sets to %s", pin, rele_state ? "On" : "Off");
@@ -146,7 +141,6 @@ static esp_err_t zb_attribute_handler(const esp_zb_zcl_set_attr_value_message_t 
                 }
                 item = item->next;
             }
-            cJSON_Delete(json_data);
         }
     }
     return ret;
@@ -349,22 +343,18 @@ static void esp_zb_task(void *pvParameters)
     esp_zb_ep_list_t *esp_zb_ep_list = esp_zb_ep_list_create();
 
     //---------------------------------------------------------------------------------------------------------------//
-    cJSON *json_data = cJSON_Parse(sensor_json);
-    if (json_data == NULL)
-    {
-        printf("Error parsing JSON.\n");
-        // goto end;
-    }
-    cJSON *item = json_data->child;
+    cJSON *item = sensor_json->child;
     while (item != NULL)
     {
-        cJSON *obj = cJSON_GetObjectItem(item, "cluster");
-
-        if (obj)
+        cJSON *ep_ = cJSON_GetObjectItemCaseSensitive(item, "EP");
+        cJSON *cluster_ = cJSON_GetObjectItemCaseSensitive(item, "claster");
+        if (cJSON_IsNumber(ep_) && cJSON_IsString(cluster_))
         {
-            char *cluster = cJSON_GetObjectItem(item, "cluster")->valuestring;
+            char *cluster = cluster_->valuestring;
+            int EP = ep_->valueint;
 
-            int EP = cJSON_GetObjectItem(item, "EP")->valueint;
+            ESP_LOGW(TAG, "Cluster: %s created. EP: %d", cluster, EP);
+
             esp_zb_cluster_list_t *esp_zb_cluster_list = get_existing_or_create_new_list(EP);
 
             if (strcmp(cluster, "temperature") == 0)
@@ -401,7 +391,7 @@ static void esp_zb_task(void *pvParameters)
                 esp_zb_attribute_list_t *esp_zb_on_off_cluster = esp_zb_on_off_cluster_create(&on_off_cfg);
                 esp_zb_cluster_list_add_on_off_cluster(esp_zb_cluster_list, esp_zb_on_off_cluster, ESP_ZB_ZCL_CLUSTER_SERVER_ROLE);
             }
-            else if (strcmp(cluster, "binary") == 0)
+            else if (strcmp(cluster, "BINARY") == 0)
             {
                 // ------------------------------ Cluster BINARY INPUT ------------------------------
                 esp_zb_binary_input_cluster_cfg_t binary_input_cfg = {
@@ -413,10 +403,24 @@ static void esp_zb_task(void *pvParameters)
                 esp_zb_binary_input_cluster_add_attr(esp_zb_binary_input_cluster, ESP_ZB_ZCL_ATTR_BINARY_INPUT_PRESENT_VALUE_ID, &present_value);
                 esp_zb_cluster_list_add_binary_input_cluster(esp_zb_cluster_list, esp_zb_binary_input_cluster, ESP_ZB_ZCL_CLUSTER_SERVER_ROLE);
             }
+            else if (strcmp(cluster, "Contact") == 0)
+            {
+                // ------------------------------ Cluster Contact switch  ------------------------------
+
+                esp_zb_ias_zone_cluster_cfg_t contact_switch_cfg = {
+                    .zone_state = 0x00,
+                    .zone_type = 0x0015,
+                    .zone_status = 0x00,
+                    .ias_cie_addr = ESP_ZB_ZCL_ZONE_IAS_CIE_ADDR_DEFAULT,
+                    //.zone_id = 0,
+                };
+
+                esp_zb_attribute_list_t *esp_zb_ias_zone_cluster = esp_zb_ias_zone_cluster_create(&contact_switch_cfg);
+                esp_zb_cluster_list_add_ias_zone_cluster(esp_zb_cluster_list, esp_zb_ias_zone_cluster, ESP_ZB_ZCL_CLUSTER_SERVER_ROLE);
+            }
         }
         item = item->next;
     }
-    cJSON_Delete(json_data);
 
     for (int i = 0; i < MAX_CLUSTER_LISTS; i++)
     {
