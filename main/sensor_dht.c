@@ -106,38 +106,38 @@ static void sensor_dht_task(void *pvParameters)
 }
 //----------------------------------//
 
-void sensor_dht(const char *sensor_json)
+void sensor_dht(cJSON *sensor_json)
 {
 
-    cJSON *json_data = cJSON_Parse(sensor_json);
-    if (json_data == NULL)
-    {
-        printf("Error parsing JSON.\n");
-        // goto end;
-    }
-    cJSON *item = json_data->child;
+    cJSON *item = sensor_json->child;
     while (item != NULL)
     {
-        cJSON *obj = cJSON_GetObjectItem(item, "EP");
-        if (obj)
+        cJSON *sensor_ = cJSON_GetObjectItemCaseSensitive(item, "sensor");
+        cJSON *sensor_type_ = cJSON_GetObjectItemCaseSensitive(item, "sensor_type");
+        cJSON *id_ = cJSON_GetObjectItemCaseSensitive(item, "id");
+        cJSON *int_ = cJSON_GetObjectItemCaseSensitive(item, "int");
+        cJSON *pin_ = cJSON_GetObjectItemCaseSensitive(item, "pin");
+        cJSON *ep_ = cJSON_GetObjectItemCaseSensitive(item, "EP");
+        cJSON *cluster_ = cJSON_GetObjectItemCaseSensitive(item, "claster");
+        if (cJSON_IsString(sensor_) && cJSON_IsString(sensor_type_) && cJSON_IsString(id_) && cJSON_IsNumber(pin_) && cJSON_IsNumber(int_) && cJSON_IsNumber(ep_) && cJSON_IsString(cluster_))
         {
-            char *cluster = cJSON_GetObjectItem(item, "cluster")->valuestring;
-            char *sensor = cJSON_GetObjectItem(item, "sensor")->valuestring;
-            if ((strcmp(cluster, "humidity") == 0 || strcmp(cluster, "temperature") == 0) && strcmp(sensor, "dht") == 0)
+            char *cluster = cluster_->valuestring;
+            int EP = ep_->valueint;
+            char *sensor = sensor_->valuestring;
+            if ((strcmp(cluster, "humidity") == 0 || strcmp(cluster, "temperature") == 0) && strcmp(sensor, "DHT") == 0)
             {
                 TaskParameters taskParams = {
-                    .param_pin = cJSON_GetObjectItem(item, "pin")->valueint,
-                    .param_ep = cJSON_GetObjectItem(item, "EP")->valueint,
-                    .param_int = cJSON_GetObjectItem(item, "int")->valueint,
-                    .param_cluster = cJSON_GetObjectItem(item, "cluster")->valuestring,
-                    .param_id = cJSON_GetObjectItem(item, "id")->valuestring,
-                    .param_sensor_type = cJSON_GetObjectItem(item, "sensor_type")->valuestring,
+                    .param_pin = pin_->valueint,
+                    .param_ep = ep_->valueint,
+                    .param_int = int_->valueint,
+                    .param_cluster = cluster_->valuestring,
+                    .param_id = id_->valuestring,
+                    .param_sensor_type = sensor_type_->valuestring,
                 };
-
-                xTaskCreate(sensor_dht_task, cJSON_GetObjectItem(item, "id")->valuestring, 4096, &taskParams, 5, NULL);
+                ESP_LOGW(TAG, "Task:  %s  created. Claster:  %s  EP: %d", sensor, cluster, EP);
+                xTaskCreate(sensor_dht_task, id_->valuestring, 4096, &taskParams, 5, NULL);
             }
         }
         item = item->next;
     }
-    cJSON_Delete(json_data);
 }

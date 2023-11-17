@@ -5,13 +5,13 @@
 #include "sensor_init.h"
 #include "sensor.h"
 #include "sensor_example.h"
-#include "binary_input.h"
+#include "sensor_gpioin.h"
 #include "sensor_dht.h"
-
+#include "cJSON.h"
+extern cJSON *sensor_json;
 void sensor_init(void)
 {
-    extern const char *sensor_json;
-    // binary_input(sensor_json);
+    gpioin(sensor_json);
     sensor_dht(sensor_json);
-    // sensor_example(sensor_json);
+    sensor_example(sensor_json);
 }
