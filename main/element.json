@@ -1,0 +1,51 @@
+[
+    {
+      name: "Select element",
+      num: 0
+    },
+    {
+      header: "GPIO"
+    },
+    {
+      num: 1,
+      name: "1. GPIO IN",
+      sensor: "GPIO_IN",
+      id: "gpioIN",
+      int: 100,
+      pin: 2,
+      clasters: [
+            "Contact",
+            "BINARY"
+        ],
+      sensor_type: "",
+      EP: 1
+    },
+    {
+      num: 2,
+      name: "2. RELE",
+      sensor: "rele",
+      id: "gpioIN",
+      pin: 4,
+      clasters: [
+            "rele"
+        ],
+      EP: 1
+    },
+    {
+      header: "SENSORS"
+    },
+    {
+      num: 3,
+      name: "3. DHT (temperature humidity)",
+      sensor: "DHT",
+      id: "dht",
+      int: 60,
+      pin: 15,
+      clasters: [
+            "temperature",
+            "humidity"
+        ],
+      sensor_type: "AM2301",
+      EP: 1
+    }
+]
