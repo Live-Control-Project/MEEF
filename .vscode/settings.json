@@ -27,5 +27,8 @@
         "sensor_gpioin.h": "c"
     },
     "idf.adapterTargetName": "esp32c6",
-    "C_Cpp.errorSquiggles": "disabled"
+    "C_Cpp.errorSquiggles": "disabled",
+    "idf.openOcdConfigs": [
+        "board/esp32c6-builtin.cfg"
+    ]
 }
