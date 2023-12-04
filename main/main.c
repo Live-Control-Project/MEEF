@@ -18,6 +18,7 @@ cJSON *sensor_json = NULL;
 static const char *TAG = "MAIN";
 void app_main(void)
 {
+
     esp_vfs_spiffs_conf_t config = {
         .base_path = "/spiffs_data",
         .partition_label = NULL,
