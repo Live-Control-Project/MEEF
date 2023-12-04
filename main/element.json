@@ -9,7 +9,7 @@
   {
     "num": 1,
     "name": "1. GPIO IN",
-    "sensor": "GPIO_IN",
+    "sensor": "gpioIN",
     "id": "gpioIN",
     "int": 100,
     "pin": 2,
@@ -23,7 +23,7 @@
     "num": 2,
     "name": "2. RELE",
     "sensor": "rele",
-    "id": "gpioIN",
+    "id": "rele",
     "pin": 4,
     "clasters": [
       "on_off"
