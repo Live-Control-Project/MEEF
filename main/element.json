@@ -17,7 +17,6 @@
       "Contact",
       "BINARY"
     ],
-    "sensor_type": "",
     "EP": 1
   },
   {
@@ -27,7 +26,7 @@
     "id": "gpioIN",
     "pin": 4,
     "clasters": [
-      "rele"
+      "on_off"
     ],
     "EP": 1
   },

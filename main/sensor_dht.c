@@ -1,36 +1,16 @@
 #include <stdio.h>
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
-#include "zigbee_init.h"
-#include "zcl/esp_zigbee_zcl_common.h"
 #include "esp_log.h"
 #include "esp_err.h"
 #include "cJSON.h"
 #include "string.h"
-
+#include "send_data.h"
 #include "sensor_dht.h"
 #include "dht.h"
 #include "sensor.h"
 
 static const char *TAG = "sensor_dht";
-/* Manual reporting atribute to coordinator */
-static void reportAttribute(uint8_t endpoint, uint16_t clusterID, uint16_t attributeID, void *value, uint8_t value_length)
-{
-    esp_zb_zcl_report_attr_cmd_t cmd = {
-        .zcl_basic_cmd = {
-            .dst_addr_u.addr_short = 0x0000,
-            .dst_endpoint = endpoint,
-            .src_endpoint = endpoint,
-        },
-        .address_mode = ESP_ZB_APS_ADDR_MODE_16_ENDP_PRESENT,
-        .clusterID = clusterID,
-        .attributeID = attributeID,
-        .cluster_role = ESP_ZB_ZCL_CLUSTER_SERVER_ROLE,
-    };
-    esp_zb_zcl_attr_t *value_r = esp_zb_zcl_get_attribute(endpoint, clusterID, ESP_ZB_ZCL_CLUSTER_SERVER_ROLE, attributeID);
-    memcpy(value_r->data_p, value, value_length);
-    esp_zb_zcl_report_attr_cmd_req(&cmd);
-}
 
 static void sensor_dht_task(void *pvParameters)
 {
@@ -79,22 +59,14 @@ static void sensor_dht_task(void *pvParameters)
             if (strcmp(cluster, "temperature") == 0)
             {
                 ESP_LOGI(TAG, "Temp: %.1fC  EP%d: ", temperature, param_ep);
-                uint16_t dht_temp = (uint16_t)(temperature * 100);
-                esp_zb_zcl_status_t state_tmp = esp_zb_zcl_set_attribute_val(param_ep, ESP_ZB_ZCL_CLUSTER_ID_TEMP_MEASUREMENT, ESP_ZB_ZCL_CLUSTER_SERVER_ROLE, ESP_ZB_ZCL_ATTR_TEMP_MEASUREMENT_VALUE_ID, &dht_temp, false);
-                if (state_tmp != ESP_ZB_ZCL_STATUS_SUCCESS)
-                {
-                    ESP_LOGE(TAG, "Setting temperature attribute failed!");
-                }
+                uint16_t dht_val = (uint16_t)(temperature * 100);
+                send_data(dht_val, param_ep, cluster);
             }
             else if (strcmp(cluster, "humidity") == 0)
             {
                 ESP_LOGI(TAG, "Humidity: %.1f%% EP%d: ", humidity, param_ep);
-                uint16_t dht_hum = (uint16_t)(humidity * 100);
-                esp_zb_zcl_status_t state_hum = esp_zb_zcl_set_attribute_val(param_ep, ESP_ZB_ZCL_CLUSTER_ID_REL_HUMIDITY_MEASUREMENT, ESP_ZB_ZCL_CLUSTER_SERVER_ROLE, ESP_ZB_ZCL_ATTR_REL_HUMIDITY_MEASUREMENT_VALUE_ID, &dht_hum, false);
-                if (state_hum != ESP_ZB_ZCL_STATUS_SUCCESS)
-                {
-                    ESP_LOGE(TAG, "Setting humidity attribute failed!");
-                }
+                uint16_t dht_val = (uint16_t)(humidity * 100);
+                send_data(dht_val, param_ep, cluster);
             }
         }
         else

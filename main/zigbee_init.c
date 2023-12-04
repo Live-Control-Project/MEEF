@@ -116,7 +116,7 @@ static esp_err_t zb_attribute_handler(const esp_zb_zcl_set_attr_value_message_t 
         ESP_LOGI(TAG, "Message data: cluster(0x%x), attribute(0x%x)  ", message->info.cluster, message->attribute.id);
     }
     //}
-    //---------- RELE -----------//
+    //---------- on_off -----------//
     if (message->info.cluster == ESP_ZB_ZCL_CLUSTER_ID_ON_OFF)
     {
         if (message->attribute.id == ESP_ZB_ZCL_ATTR_ON_OFF_ON_OFF_ID && message->attribute.data.type == ESP_ZB_ZCL_ATTR_TYPE_BOOL)
@@ -131,7 +131,7 @@ static esp_err_t zb_attribute_handler(const esp_zb_zcl_set_attr_value_message_t 
                 {
                     char *cluster = cluster_->valuestring;
                     int EP = ep_->valueint;
-                    if (message->info.dst_endpoint == EP && strcmp(cluster, "rele") == 0)
+                    if (message->info.dst_endpoint == EP && strcmp(cluster, "on_off") == 0)
                     {
                         int pin = cJSON_GetObjectItemCaseSensitive(item, "pin")->valueint;
                         rele_state = message->attribute.data.value ? *(bool *)message->attribute.data.value : rele_state;
@@ -382,9 +382,9 @@ static void esp_zb_task(void *pvParameters)
                 esp_zb_pressure_meas_cluster_add_attr(esp_zb_press_meas_cluster, ESP_ZB_ZCL_ATTR_PRESSURE_MEASUREMENT_MAX_VALUE_ID, &undefined_value);
                 esp_zb_cluster_list_add_pressure_meas_cluster(esp_zb_cluster_list, esp_zb_press_meas_cluster, ESP_ZB_ZCL_CLUSTER_SERVER_ROLE);
             }
-            else if (strcmp(cluster, "rele") == 0)
+            else if (strcmp(cluster, "on_off") == 0)
             {
-                // ------------------------------ Cluster RELE ------------------------------
+                // ------------------------------ Cluster on_off ------------------------------
                 esp_zb_on_off_cluster_cfg_t on_off_cfg = {
                     .on_off = 0,
                 };

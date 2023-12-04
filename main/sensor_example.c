@@ -1,12 +1,11 @@
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
-#include "zigbee_init.h"
-#include "zcl/esp_zigbee_zcl_common.h"
 #include "esp_log.h"
 #include "esp_err.h"
 #include "string.h"
 #include "sensor.h"
 #include "sensor_example.h"
+#include "send_data.h"
 static const char *TAG = "sensor_example";
 
 static void sensor_example_task(void *pvParameters)
@@ -30,6 +29,8 @@ static void sensor_example_task(void *pvParameters)
 
         if (strcmp(cluster, "sensor_example") == 0)
         {
+            uint16_t sensor_example_state = 1;
+            send_data(sensor_example_state, param_ep, cluster);
             ESP_LOGW(TAG, "int: %d", param_int);
             ESP_LOGW(TAG, "pin: %d", param_pin);
         }
