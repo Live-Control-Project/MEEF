@@ -9,9 +9,11 @@
 #define ESP_ZB_PRIMARY_CHANNEL_MASK ESP_ZB_TRANSCEIVER_ALL_CHANNELS_MASK /* Zigbee primary channel mask use in the example */
 #define OTA_UPGRADE_MANUFACTURER 0x1001                                  /* The attribute indicates the file version of the downloaded image on the device*/
 #define OTA_UPGRADE_IMAGE_TYPE 0x1011                                    /* The attribute indicates the value for the manufacturer of the device */
-#define OTA_UPGRADE_FILE_VERSION 0x01010101                              /* The attribute indicates the file version of the running firmware image on the device */
-#define OTA_UPGRADE_HW_VERSION 0x0101                                    /* The parameter indicates the version of hardware */
-#define OTA_UPGRADE_MAX_DATA_SIZE 64                                     /* The parameter indicates the maximum data size of query block image */
+// #define OTA_UPGRADE_FILE_VERSION 0x01010101                              /* The attribute indicates the file version of the running firmware image on the device */
+#define OTA_UPGRADE_RUNNING_FILE_VERSION 0x01010101    /* The attribute indicates the file version of the running firmware image on the device */
+#define OTA_UPGRADE_DOWNLOADED_FILE_VERSION 0x01010101 /* The attribute indicates the file version of the downloaded firmware image on the device */
+#define OTA_UPGRADE_HW_VERSION 0x0101                  /* The parameter indicates the version of hardware */
+#define OTA_UPGRADE_MAX_DATA_SIZE 64                   /* The parameter indicates the maximum data size of query block image */
 #define MANUFACTURER_NAME "MEEF"
 #define MODEL_NAME "DEV 1.0"
 #define FIRMWARE_VERSION "ver-0.1"
