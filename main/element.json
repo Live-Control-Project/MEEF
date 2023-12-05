@@ -15,6 +15,13 @@
     "pin": 2,
     "clasters": [
       "Contact",
+      "ZoneStatus",
+      "Motion",
+      "Door_Window",
+      "Fire",
+      "Occupancy",
+      "Carbon",
+      "Remote_Control",
       "BINARY"
     ],
     "EP": 1

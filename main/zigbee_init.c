@@ -406,6 +406,36 @@ static void esp_zb_task(void *pvParameters)
                 esp_zb_binary_input_cluster_add_attr(esp_zb_binary_input_cluster, ESP_ZB_ZCL_ATTR_BINARY_INPUT_PRESENT_VALUE_ID, &present_value);
                 esp_zb_cluster_list_add_binary_input_cluster(esp_zb_cluster_list, esp_zb_binary_input_cluster, ESP_ZB_ZCL_CLUSTER_SERVER_ROLE);
             }
+            else if (strcmp(cluster, "ZoneStatus") == 0)
+            {
+                // ------------------------------ Cluster ZoneStatus Standard CIE   ------------------------------
+
+                esp_zb_ias_zone_cluster_cfg_t contact_switch_cfg = {
+                    .zone_state = 0x00,
+                    .zone_type = 0x0000,
+                    .zone_status = 0x00,
+                    .ias_cie_addr = ESP_ZB_ZCL_ZONE_IAS_CIE_ADDR_DEFAULT,
+                    //.zone_id = 0,
+                };
+
+                esp_zb_attribute_list_t *esp_zb_ias_zone_cluster = esp_zb_ias_zone_cluster_create(&contact_switch_cfg);
+                esp_zb_cluster_list_add_ias_zone_cluster(esp_zb_cluster_list, esp_zb_ias_zone_cluster, ESP_ZB_ZCL_CLUSTER_SERVER_ROLE);
+            }
+            else if (strcmp(cluster, "Motion") == 0)
+            {
+                // ------------------------------ Cluster Motion sensor   ------------------------------
+
+                esp_zb_ias_zone_cluster_cfg_t contact_switch_cfg = {
+                    .zone_state = 0x00,
+                    .zone_type = 0x000d,
+                    .zone_status = 0x00,
+                    .ias_cie_addr = ESP_ZB_ZCL_ZONE_IAS_CIE_ADDR_DEFAULT,
+                    //.zone_id = 0,
+                };
+
+                esp_zb_attribute_list_t *esp_zb_ias_zone_cluster = esp_zb_ias_zone_cluster_create(&contact_switch_cfg);
+                esp_zb_cluster_list_add_ias_zone_cluster(esp_zb_cluster_list, esp_zb_ias_zone_cluster, ESP_ZB_ZCL_CLUSTER_SERVER_ROLE);
+            }
             else if (strcmp(cluster, "Contact") == 0)
             {
                 // ------------------------------ Cluster Contact switch  ------------------------------
@@ -413,6 +443,96 @@ static void esp_zb_task(void *pvParameters)
                 esp_zb_ias_zone_cluster_cfg_t contact_switch_cfg = {
                     .zone_state = 0x00,
                     .zone_type = 0x0015,
+                    .zone_status = 0x00,
+                    .ias_cie_addr = ESP_ZB_ZCL_ZONE_IAS_CIE_ADDR_DEFAULT,
+                    //.zone_id = 0,
+                };
+
+                esp_zb_attribute_list_t *esp_zb_ias_zone_cluster = esp_zb_ias_zone_cluster_create(&contact_switch_cfg);
+                esp_zb_cluster_list_add_ias_zone_cluster(esp_zb_cluster_list, esp_zb_ias_zone_cluster, ESP_ZB_ZCL_CLUSTER_SERVER_ROLE);
+            }
+            else if (strcmp(cluster, "Door_Window") == 0)
+            {
+                // ------------------------------ Cluster Door/Window handle  ------------------------------
+
+                esp_zb_ias_zone_cluster_cfg_t contact_switch_cfg = {
+                    .zone_state = 0x00,
+                    .zone_type = 0x0016,
+                    .zone_status = 0x00,
+                    .ias_cie_addr = ESP_ZB_ZCL_ZONE_IAS_CIE_ADDR_DEFAULT,
+                    //.zone_id = 0,
+                };
+
+                esp_zb_attribute_list_t *esp_zb_ias_zone_cluster = esp_zb_ias_zone_cluster_create(&contact_switch_cfg);
+                esp_zb_cluster_list_add_ias_zone_cluster(esp_zb_cluster_list, esp_zb_ias_zone_cluster, ESP_ZB_ZCL_CLUSTER_SERVER_ROLE);
+            }
+            else if (strcmp(cluster, "Fire") == 0)
+            {
+                // ------------------------------ Cluster Fire sensor  ------------------------------
+
+                esp_zb_ias_zone_cluster_cfg_t contact_switch_cfg = {
+                    .zone_state = 0x00,
+                    .zone_type = 0x0028,
+                    .zone_status = 0x00,
+                    .ias_cie_addr = ESP_ZB_ZCL_ZONE_IAS_CIE_ADDR_DEFAULT,
+                    //.zone_id = 0,
+                };
+
+                esp_zb_attribute_list_t *esp_zb_ias_zone_cluster = esp_zb_ias_zone_cluster_create(&contact_switch_cfg);
+                esp_zb_cluster_list_add_ias_zone_cluster(esp_zb_cluster_list, esp_zb_ias_zone_cluster, ESP_ZB_ZCL_CLUSTER_SERVER_ROLE);
+            }
+            else if (strcmp(cluster, "Occupancy") == 0)
+            {
+                // ------------------------------ Cluster Occupancy switch  ------------------------------
+
+                esp_zb_ias_zone_cluster_cfg_t contact_switch_cfg = {
+                    .zone_state = 0x00,
+                    .zone_type = 0x000D,
+                    .zone_status = 0x00,
+                    .ias_cie_addr = ESP_ZB_ZCL_ZONE_IAS_CIE_ADDR_DEFAULT,
+                    //.zone_id = 0,
+                };
+
+                esp_zb_attribute_list_t *esp_zb_ias_zone_cluster = esp_zb_ias_zone_cluster_create(&contact_switch_cfg);
+                esp_zb_cluster_list_add_ias_zone_cluster(esp_zb_cluster_list, esp_zb_ias_zone_cluster, ESP_ZB_ZCL_CLUSTER_SERVER_ROLE);
+            }
+            else if (strcmp(cluster, "WaterLeak") == 0)
+            {
+                // ------------------------------ Cluster WaterLeak switch  ------------------------------
+
+                esp_zb_ias_zone_cluster_cfg_t contact_switch_cfg = {
+                    .zone_state = 0x00,
+                    .zone_type = 0x002A,
+                    .zone_status = 0x00,
+                    .ias_cie_addr = ESP_ZB_ZCL_ZONE_IAS_CIE_ADDR_DEFAULT,
+                    //.zone_id = 0,
+                };
+
+                esp_zb_attribute_list_t *esp_zb_ias_zone_cluster = esp_zb_ias_zone_cluster_create(&contact_switch_cfg);
+                esp_zb_cluster_list_add_ias_zone_cluster(esp_zb_cluster_list, esp_zb_ias_zone_cluster, ESP_ZB_ZCL_CLUSTER_SERVER_ROLE);
+            }
+            else if (strcmp(cluster, "Carbon") == 0)
+            {
+                // ------------------------------ Cluster Carbon Monoxide (CO) sensorswitch  ------------------------------
+
+                esp_zb_ias_zone_cluster_cfg_t contact_switch_cfg = {
+                    .zone_state = 0x00,
+                    .zone_type = 0x002b,
+                    .zone_status = 0x00,
+                    .ias_cie_addr = ESP_ZB_ZCL_ZONE_IAS_CIE_ADDR_DEFAULT,
+                    //.zone_id = 0,
+                };
+
+                esp_zb_attribute_list_t *esp_zb_ias_zone_cluster = esp_zb_ias_zone_cluster_create(&contact_switch_cfg);
+                esp_zb_cluster_list_add_ias_zone_cluster(esp_zb_cluster_list, esp_zb_ias_zone_cluster, ESP_ZB_ZCL_CLUSTER_SERVER_ROLE);
+            }
+            else if (strcmp(cluster, "Remote_Control") == 0)
+            {
+                // ------------------------------ Cluster Remote Control  ------------------------------
+
+                esp_zb_ias_zone_cluster_cfg_t contact_switch_cfg = {
+                    .zone_state = 0x00,
+                    .zone_type = 0x010f,
                     .zone_status = 0x00,
                     .ias_cie_addr = ESP_ZB_ZCL_ZONE_IAS_CIE_ADDR_DEFAULT,
                     //.zone_id = 0,
