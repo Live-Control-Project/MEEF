@@ -360,7 +360,16 @@ static void esp_zb_task(void *pvParameters)
 
             esp_zb_cluster_list_t *esp_zb_cluster_list = get_existing_or_create_new_list(EP);
 
-            if (strcmp(cluster, "temperature") == 0)
+            if (strcmp(cluster, "illuminance") == 0)
+            {
+                esp_zb_attribute_list_t *esp_zb_illuminance_meas_cluster = esp_zb_zcl_attr_list_create(ESP_ZB_ZCL_CLUSTER_ID_ILLUMINANCE_MEASUREMENT);
+                esp_zb_illuminance_meas_cluster_add_attr(esp_zb_illuminance_meas_cluster, ESP_ZB_ZCL_ATTR_TEMP_MEASUREMENT_VALUE_ID, &undefined_value);
+                esp_zb_illuminance_meas_cluster_add_attr(esp_zb_illuminance_meas_cluster, ESP_ZB_ZCL_ATTR_TEMP_MEASUREMENT_MIN_VALUE_ID, &undefined_value);
+                esp_zb_illuminance_meas_cluster_add_attr(esp_zb_illuminance_meas_cluster, ESP_ZB_ZCL_ATTR_TEMP_MEASUREMENT_MAX_VALUE_ID, &undefined_value);
+                esp_zb_cluster_list_add_illuminance_meas_cluster(esp_zb_cluster_list, esp_zb_illuminance_meas_cluster, ESP_ZB_ZCL_CLUSTER_SERVER_ROLE);
+            }
+
+            else if (strcmp(cluster, "temperature") == 0)
             {
                 esp_zb_attribute_list_t *esp_zb_temperature_meas_cluster = esp_zb_zcl_attr_list_create(ESP_ZB_ZCL_CLUSTER_ID_TEMP_MEASUREMENT);
                 esp_zb_temperature_meas_cluster_add_attr(esp_zb_temperature_meas_cluster, ESP_ZB_ZCL_ATTR_TEMP_MEASUREMENT_VALUE_ID, &undefined_value);
