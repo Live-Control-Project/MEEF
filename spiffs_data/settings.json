@@ -1,7 +1,7 @@
 [
     {
         "sensor": "rele",
-        "id": "gpioIN29",
+        "id": "rele",
         "pin": 4,
         "EP": 1,
         "claster": "on_off"
