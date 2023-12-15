@@ -56,7 +56,152 @@ void send_data(uint16_t sensor_val, int param_ep, char *cluster)
         reportAttribute(param_ep, ESP_ZB_ZCL_CLUSTER_ID_BINARY_INPUT, ESP_ZB_ZCL_ATTR_BINARY_INPUT_PRESENT_VALUE_ID, &sensor_val, 1);
 #endif
     }
+    //----------------
+    else if (strcmp(cluster, "ZoneStatus") == 0)
+    {
+#ifdef MODE_ZIGBEE
+        esp_zb_zcl_ias_zone_status_change_notif_cmd_t cmd = {
+            .zcl_basic_cmd = {
+                .dst_addr_u.addr_short = 0x0000,
+                .dst_endpoint = param_ep,
+                .src_endpoint = param_ep,
+            },
+            .address_mode = ESP_ZB_APS_ADDR_MODE_16_ENDP_PRESENT,
+            .zone_status = ESP_ZB_ZCL_IAS_ZONE_ZONE_STATUS_ALARM1 ? sensor_val : 0,
+            //    .zone_id = 0,
+            .delay = 0,
+        };
+        esp_zb_zcl_ias_zone_status_change_notif_cmd_req(&cmd);
+
+#endif
+    }
+    else if (strcmp(cluster, "Motion") == 0)
+    {
+#ifdef MODE_ZIGBEE
+        esp_zb_zcl_ias_zone_status_change_notif_cmd_t cmd = {
+            .zcl_basic_cmd = {
+                .dst_addr_u.addr_short = 0x0000,
+                .dst_endpoint = param_ep,
+                .src_endpoint = param_ep,
+            },
+            .address_mode = ESP_ZB_APS_ADDR_MODE_16_ENDP_PRESENT,
+            .zone_status = ESP_ZB_ZCL_IAS_ZONE_ZONE_STATUS_ALARM1 ? sensor_val : 0,
+            //    .zone_id = 0,
+            .delay = 0,
+        };
+        esp_zb_zcl_ias_zone_status_change_notif_cmd_req(&cmd);
+
+#endif
+    }
     else if (strcmp(cluster, "Contact") == 0)
+    {
+#ifdef MODE_ZIGBEE
+        esp_zb_zcl_ias_zone_status_change_notif_cmd_t cmd = {
+            .zcl_basic_cmd = {
+                .dst_addr_u.addr_short = 0x0000,
+                .dst_endpoint = param_ep,
+                .src_endpoint = param_ep,
+            },
+            .address_mode = ESP_ZB_APS_ADDR_MODE_16_ENDP_PRESENT,
+            .zone_status = ESP_ZB_ZCL_IAS_ZONE_ZONE_STATUS_ALARM1 ? sensor_val : 0,
+            //    .zone_id = 0,
+            .delay = 0,
+        };
+        esp_zb_zcl_ias_zone_status_change_notif_cmd_req(&cmd);
+
+#endif
+    }
+    else if (strcmp(cluster, "Door_Window") == 0)
+    {
+#ifdef MODE_ZIGBEE
+        esp_zb_zcl_ias_zone_status_change_notif_cmd_t cmd = {
+            .zcl_basic_cmd = {
+                .dst_addr_u.addr_short = 0x0000,
+                .dst_endpoint = param_ep,
+                .src_endpoint = param_ep,
+            },
+            .address_mode = ESP_ZB_APS_ADDR_MODE_16_ENDP_PRESENT,
+            .zone_status = ESP_ZB_ZCL_IAS_ZONE_ZONE_STATUS_ALARM1 ? sensor_val : 0,
+            //    .zone_id = 0,
+            .delay = 0,
+        };
+        esp_zb_zcl_ias_zone_status_change_notif_cmd_req(&cmd);
+
+#endif
+    }
+    else if (strcmp(cluster, "Fire") == 0)
+    {
+#ifdef MODE_ZIGBEE
+        esp_zb_zcl_ias_zone_status_change_notif_cmd_t cmd = {
+            .zcl_basic_cmd = {
+                .dst_addr_u.addr_short = 0x0000,
+                .dst_endpoint = param_ep,
+                .src_endpoint = param_ep,
+            },
+            .address_mode = ESP_ZB_APS_ADDR_MODE_16_ENDP_PRESENT,
+            .zone_status = ESP_ZB_ZCL_IAS_ZONE_ZONE_STATUS_ALARM1 ? sensor_val : 0,
+            //    .zone_id = 0,
+            .delay = 0,
+        };
+        esp_zb_zcl_ias_zone_status_change_notif_cmd_req(&cmd);
+
+#endif
+    }
+    else if (strcmp(cluster, "Occupancy") == 0)
+    {
+#ifdef MODE_ZIGBEE
+        esp_zb_zcl_ias_zone_status_change_notif_cmd_t cmd = {
+            .zcl_basic_cmd = {
+                .dst_addr_u.addr_short = 0x0000,
+                .dst_endpoint = param_ep,
+                .src_endpoint = param_ep,
+            },
+            .address_mode = ESP_ZB_APS_ADDR_MODE_16_ENDP_PRESENT,
+            .zone_status = ESP_ZB_ZCL_IAS_ZONE_ZONE_STATUS_ALARM1 ? sensor_val : 0,
+            //    .zone_id = 0,
+            .delay = 0,
+        };
+        esp_zb_zcl_ias_zone_status_change_notif_cmd_req(&cmd);
+
+#endif
+    }
+    else if (strcmp(cluster, "WaterLeak") == 0)
+    {
+#ifdef MODE_ZIGBEE
+        esp_zb_zcl_ias_zone_status_change_notif_cmd_t cmd = {
+            .zcl_basic_cmd = {
+                .dst_addr_u.addr_short = 0x0000,
+                .dst_endpoint = param_ep,
+                .src_endpoint = param_ep,
+            },
+            .address_mode = ESP_ZB_APS_ADDR_MODE_16_ENDP_PRESENT,
+            .zone_status = ESP_ZB_ZCL_IAS_ZONE_ZONE_STATUS_ALARM1 ? sensor_val : 0,
+            //    .zone_id = 0,
+            .delay = 0,
+        };
+        esp_zb_zcl_ias_zone_status_change_notif_cmd_req(&cmd);
+
+#endif
+    }
+    else if (strcmp(cluster, "Carbon") == 0)
+    {
+#ifdef MODE_ZIGBEE
+        esp_zb_zcl_ias_zone_status_change_notif_cmd_t cmd = {
+            .zcl_basic_cmd = {
+                .dst_addr_u.addr_short = 0x0000,
+                .dst_endpoint = param_ep,
+                .src_endpoint = param_ep,
+            },
+            .address_mode = ESP_ZB_APS_ADDR_MODE_16_ENDP_PRESENT,
+            .zone_status = ESP_ZB_ZCL_IAS_ZONE_ZONE_STATUS_ALARM1 ? sensor_val : 0,
+            //    .zone_id = 0,
+            .delay = 0,
+        };
+        esp_zb_zcl_ias_zone_status_change_notif_cmd_req(&cmd);
+
+#endif
+    }
+    else if (strcmp(cluster, "Remote_Control") == 0)
     {
 #ifdef MODE_ZIGBEE
         esp_zb_zcl_ias_zone_status_change_notif_cmd_t cmd = {
