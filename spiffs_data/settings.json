@@ -3,7 +3,7 @@
         "sensor": "gpioIN",
         "id": "gpioIN92",
         "int": 100,
-        "pin": 28,
+        "pin": 13,
         "EP": 1,
         "claster": "Contact"
     },
@@ -11,7 +11,7 @@
         "sensor": "gpioIN",
         "id": "gpioIN35",
         "int": 100,
-        "pin": 13,
+        "pin": 15,
         "EP": 2,
         "claster": "Occupancy"
     }
