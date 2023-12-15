@@ -17,6 +17,7 @@
       "Contact",
       "ZoneStatus",
       "Motion",
+      "WaterLeak",
       "Door_Window",
       "Fire",
       "Occupancy",
