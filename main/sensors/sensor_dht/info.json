@@ -1,0 +1,40 @@
+{
+    "menuSection": "sensors",
+    "configItem": [
+        {
+            "name": "DHT (temperature humidity)",
+            "sensor": "DHT",
+            "id": "dht",
+            "int": 60,
+            "pin": 15,
+            "clasters": [
+                "temperature",
+                "humidity"
+            ],
+            "sensor_type": "AM2301",
+            "EP": 1,
+            "descr": "Датчик температуры / влажности"
+        }
+    ],
+    "about": {
+        "authorName": "AVAKS",
+        "authorContact": "https://t.me/avaks",
+        "authorGit": "https://github.com/avaksru",
+        "specialThanks": "",
+        "moduleName": "DHT",
+        "moduleVersion": "1.0",
+        "title": "Сенсор температуры и влажности DHT",
+        "moduleDesc": "Позволяет получить значения температуры и влажности с dht11 или dht22.",
+        "retInfo": "",
+        "propInfo": {
+            "sensor_type": "Выбираем DHT11, или  AM2301 для датчиков (DHT21, DHT22, AM2302, AM2321), или Si7021",
+            "pin": "Укажите GPIO номер пина",
+            "int": "Количество секунд между опросами датчика."
+        }
+    },
+    "defActive": true,
+    "usedLibs": {
+        "esp32_C6": [],
+        "esp32_H2": []
+    }
+}

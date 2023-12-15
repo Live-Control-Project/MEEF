@@ -1,0 +1,49 @@
+{
+    "menuSection": "executive_devices",
+    "configItem": [
+        {
+            "name": "GPIO IN",
+            "sensor": "gpioIN",
+            "id": "gpioIN",
+            "int": 100,
+            "pin": 2,
+            "clasters": [
+                "Contact",
+                "ZoneStatus",
+                "Motion",
+                "Door_Window",
+                "Fire",
+                "Occupancy",
+                "Carbon",
+                "Remote_Control",
+                "BINARY"
+            ],
+            "EP": 1,
+            "descr": "Освещение",
+            "pinMode": "INPUT",
+            "inv": 0
+        }
+    ],
+    "about": {
+        "authorName": "AVAKS",
+        "authorContact": "https://t.me/avaks",
+        "authorGit": "https://github.com/avaksru",
+        "specialThanks": "",
+        "moduleName": "GPIO IN",
+        "moduleVersion": "1.0",
+        "title": "Кнопка подключенная к пину",
+        "moduleDesc": "Позволяет интерпретировать сигналы на цифровом пине как кнопку, т.е. создает в системе объект для чтения булевых значений с внешнего физического источника. Может вести себя как кнопка или как переключатель.",
+        "retInfo": "Элемент данного модуля может иметь два значения 0 - низкий уровень, 1 - высокий уровень на входе. Значение меняется при выполнении условий по параметрам.",
+        "propInfo": {
+            "pin": "Укажите GPIO номер пина для чтения состояний подключенной кнопки",
+            "pinMode": "Может быть INPUT_PULLUP INPUT_PULLDOWN INPUT",
+            "int": "Время обработки дребезга",
+            "inv": "Инвертировать снимаемые показания на последнем этапе."
+        }
+    },
+    "defActive": true,
+    "usedLibs": {
+        "esp32_C6": [],
+        "esp32_H2": []
+    }
+}

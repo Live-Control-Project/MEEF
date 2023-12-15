@@ -37,20 +37,6 @@ void vTaskGPIOin(void *pvParameters)
             ESP_LOGI(TAG, "Button %d changed: %d", param_pin, button_state);
             last_state = button_state;
             send_data(button_state, param_ep, cluster);
-            /*
-          esp_zb_zcl_ias_zone_status_change_notif_cmd_t cmd = {
-              .zcl_basic_cmd = {
-                  .dst_addr_u.addr_short = 0x0000,
-                  .dst_endpoint = param_ep,
-                  .src_endpoint = param_ep,
-              },
-              .address_mode = ESP_ZB_APS_ADDR_MODE_16_ENDP_PRESENT,
-              .zone_status = ESP_ZB_ZCL_IAS_ZONE_ZONE_STATUS_ALARM1 ? button_state : 0,
-              //    .zone_id = 0,
-              .delay = 0,
-          };
-          esp_zb_zcl_ias_zone_status_change_notif_cmd_req(&cmd);
-          */
         }
 
         vTaskDelay(param_int / portTICK_PERIOD_MS);
@@ -76,7 +62,7 @@ void gpioin(cJSON *sensor_json)
             char *cluster = cluster_->valuestring;
             int EP = ep_->valueint;
             char *sensor = sensor_->valuestring;
-            if ((strcmp(cluster, "Contact") == 0 || strcmp(cluster, "BINARY")) && strcmp(sensor, "GPIO_IN") == 0)
+            if ((strcmp(cluster, "Contact") == 0 || strcmp(cluster, "ZoneStatus") || strcmp(cluster, "Motion") || strcmp(cluster, "Door_Window") || strcmp(cluster, "Fire") || strcmp(cluster, "Occupancy") || strcmp(cluster, "Carbon") || strcmp(cluster, "Remote_Control") || strcmp(cluster, "BINARY")) && strcmp(sensor, "GPIO_IN") == 0)
             {
                 TaskParameters taskParams = {
                     .param_pin = pin_->valueint,

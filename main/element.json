@@ -15,13 +15,20 @@
     "pin": 2,
     "clasters": [
       "Contact",
+      "ZoneStatus",
+      "Motion",
+      "Door_Window",
+      "Fire",
+      "Occupancy",
+      "Carbon",
+      "Remote_Control",
       "BINARY"
     ],
     "EP": 1
   },
   {
     "num": 2,
-    "name": "2. RELE",
+    "name": "2. 🔌 PLUG / RELE",
     "sensor": "rele",
     "id": "rele",
     "pin": 4,
@@ -31,11 +38,25 @@
     "EP": 1
   },
   {
+    "num": 3,
+    "name": "3. 💡 LED Lamp",
+    "sensor": "ledLamp",
+    "id": "ledLamp",
+    "pin": 8,
+    "clasters": [
+      "on_off",
+      "level_control",
+      "color_control"
+    ],
+    "sensor_type": "LED_MODEL_WS2812",
+    "EP": 1
+  },
+  {
     "header": "SENSORS"
   },
   {
-    "num": 3,
-    "name": "3. DHT (temperature humidity)",
+    "num": 4,
+    "name": "4. DHT (temperature humidity)",
     "sensor": "DHT",
     "id": "dht",
     "int": 60,
