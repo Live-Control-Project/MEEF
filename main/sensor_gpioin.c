@@ -37,7 +37,7 @@ void vTaskGPIOin(void *pvParameters)
             ESP_LOGI(TAG, "Button %d changed: %d", param_pin, button_state);
             last_state = button_state;
             send_data(button_state, param_ep, cluster);
-                }
+        }
 
         vTaskDelay(param_int / portTICK_PERIOD_MS);
     }
@@ -62,7 +62,7 @@ void gpioin(cJSON *sensor_json)
             char *cluster = cluster_->valuestring;
             int EP = ep_->valueint;
             char *sensor = sensor_->valuestring;
-            if ((strcmp(cluster, "Contact") == 0 || strcmp(cluster, "ZoneStatus" || strcmp(cluster, "Motion" || strcmp(cluster, "Door_Window" || strcmp(cluster, "Fire" || strcmp(cluster, "Occupancy" || strcmp(cluster, "Carbon" || strcmp(cluster, "Remote_Control" || strcmp(cluster, "BINARY")) && strcmp(sensor, "GPIO_IN") == 0)
+            if ((strcmp(cluster, "Contact") == 0 || strcmp(cluster, "ZoneStatus") || strcmp(cluster, "Motion") || strcmp(cluster, "Door_Window") || strcmp(cluster, "Fire") || strcmp(cluster, "Occupancy") || strcmp(cluster, "Carbon") || strcmp(cluster, "Remote_Control") || strcmp(cluster, "BINARY")) && strcmp(sensor, "GPIO_IN") == 0)
             {
                 TaskParameters taskParams = {
                     .param_pin = pin_->valueint,

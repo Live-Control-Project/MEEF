@@ -1,26 +1,26 @@
 [
     {
-        "sensor": "rele",
-        "id": "rele",
-        "pin": 4,
-        "EP": 1,
-        "claster": "on_off"
-    },
-    {
-        "sensor": "GPIO_IN",
-        "id": "gpioIN",
-        "int": 100,
-        "pin": 15,
-        "claster": "Contact",
+        "sensor": "ledLamp",
+        "id": "ledLamp",
+        "pin": 8,
+        "claster": "on_off",
+        "sensor_type": "LED_MODEL_WS2812",
         "EP": 1
     },
     {
-        "sensor": "DHT",
-        "id": "dht",
-        "int": 60,
-        "pin": 12,
-        "claster": "temperature",
-        "sensor_type": "AM2301",
+        "sensor": "ledLamp",
+        "id": "ledLamp",
+        "pin": 8,
+        "claster": "level_control",
+        "sensor_type": "LED_MODEL_WS2812",
+        "EP": 1
+    },
+    {
+        "sensor": "ledLamp",
+        "id": "ledLamp",
+        "pin": 8,
+        "claster": "color_control",
+        "sensor_type": "LED_MODEL_WS2812",
         "EP": 1
     }
 ]
