@@ -1,26 +1,18 @@
 [
     {
-        "sensor": "ledLamp",
-        "id": "ledLamp",
-        "pin": 8,
-        "claster": "on_off",
-        "sensor_type": "LED_MODEL_WS2812",
-        "EP": 1
+        "sensor": "gpioIN",
+        "id": "gpioIN92",
+        "int": 100,
+        "pin": 28,
+        "EP": 1,
+        "claster": "Contact"
     },
     {
-        "sensor": "ledLamp",
-        "id": "ledLamp",
-        "pin": 8,
-        "claster": "level_control",
-        "sensor_type": "LED_MODEL_WS2812",
-        "EP": 1
-    },
-    {
-        "sensor": "ledLamp",
-        "id": "ledLamp",
-        "pin": 8,
-        "claster": "color_control",
-        "sensor_type": "LED_MODEL_WS2812",
-        "EP": 1
+        "sensor": "gpioIN",
+        "id": "gpioIN35",
+        "int": 100,
+        "pin": 13,
+        "EP": 2,
+        "claster": "Occupancy"
     }
 ]
