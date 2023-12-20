@@ -3,6 +3,7 @@
 #include "string.h"
 #include "iot_button.h"
 #include "nvs_flash.h"
+#include "send_data.h"
 #include "sensor_gpioOUT.h"
 #include "utils_NVS.h"
 
@@ -30,15 +31,18 @@ void sensor_gpioOUT(cJSON *sensor_json)
         cJSON *id_ = cJSON_GetObjectItemCaseSensitive(item, "id");
         // cJSON *int_ = cJSON_GetObjectItemCaseSensitive(item, "int");
         cJSON *pin_ = cJSON_GetObjectItemCaseSensitive(item, "pin");
-        // cJSON *ep_ = cJSON_GetObjectItemCaseSensitive(item, "EP");
-        // cJSON *saveState_ = cJSON_GetObjectItemCaseSensitive(item, "saveState");
+        cJSON *ep_ = cJSON_GetObjectItemCaseSensitive(item, "EP");
+        cJSON *saveState_ = cJSON_GetObjectItemCaseSensitive(item, "saveState");
         cJSON *cluster_ = cJSON_GetObjectItemCaseSensitive(item, "claster");
 
-        if (cJSON_IsString(sensor_) && cJSON_IsString(id_) && cJSON_IsNumber(pin_) && cJSON_IsString(cluster_))
+        if (cJSON_IsString(sensor_) && cJSON_IsString(id_) && cJSON_IsNumber(pin_) && cJSON_IsNumber(saveState_) && cJSON_IsNumber(ep_) && cJSON_IsString(cluster_))
         {
             char *cluster = cluster_->valuestring;
             char *id = id_->valuestring;
             char *sensor = sensor_->valuestring;
+            int pin = pin_->valueint;
+            int ep = ep_->valueint;
+            int saveState = saveState_->valueint;
             if (strcmp(cluster, "on_off") == 0 && strcmp(sensor, "rele") == 0)
             {
 
@@ -52,9 +56,10 @@ void sensor_gpioOUT(cJSON *sensor_json)
                     if (result == ESP_ERR_NVS_NOT_FOUND)
                     {
                         // Ключ NVS не найден,
-                        int pin = pin_->valueint;
+
                         gpio_set_level(pin, 0);
                         ESP_LOGI(TAG, "RELE %d sets default value %s", pin, 0 ? "On" : "Off");
+                        send_data(0, ep, cluster);
                     }
                     else
                     {
@@ -66,9 +71,21 @@ void sensor_gpioOUT(cJSON *sensor_json)
                 else
                 {
                     // Успешное чтение значения из NVS
-                    int pin = pin_->valueint;
-                    gpio_set_level(pin, value_from_nvs);
-                    ESP_LOGI(TAG, "RELE %d sets to %s", pin, value_from_nvs ? "On" : "Off");
+
+                    if (saveState == 0)
+                    {
+                        // Удаляем ключ если сохранение запрещено в конфиге
+                        EraseKeyNVS(id);
+                        gpio_set_level(pin, 0);
+                        ESP_LOGI(TAG, "RELE %d sets default value %s", pin, 0 ? "On" : "Off");
+                        send_data(0, ep, cluster);
+                    }
+                    else
+                    {
+                        gpio_set_level(pin, value_from_nvs);
+                        ESP_LOGI(TAG, "RELE %d sets to %s", pin, value_from_nvs ? "On" : "Off");
+                        send_data(value_from_nvs, ep, cluster);
+                    }
                 }
             }
         }

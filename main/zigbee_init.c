@@ -13,6 +13,7 @@
 #include <sys/time.h>
 #include "cJSON.h"
 #include "led_lamp.h"
+#include "sensor_gpioOUT.h"
 
 extern cJSON *sensor_json;
 /*------ Clobal definitions -----------*/
@@ -141,9 +142,6 @@ static esp_err_t zb_attribute_handler(const esp_zb_zcl_set_attr_value_message_t 
                         if (saveState == 1)
                         {
                             int32_t value_to_save = *(int32_t *)message->attribute.data.value;
-
-                            printf(message->attribute.data.value);
-
                             esp_err_t result = saveIntToNVS(id, value_to_save);
                             if (result != ESP_OK)
                             {
@@ -299,6 +297,8 @@ void esp_zb_app_signal_handler(esp_zb_app_signal_t *signal_struct)
                      extended_pan_id[3], extended_pan_id[2], extended_pan_id[1], extended_pan_id[0],
                      esp_zb_get_pan_id(), esp_zb_get_current_channel());
             read_server_time();
+            // Восстанавливаем состояние RELE и публикуем в zigbee cеть
+            sensor_gpioOUT(sensor_json);
         }
         break;
     case ESP_ZB_ZDO_SIGNAL_LEAVE:

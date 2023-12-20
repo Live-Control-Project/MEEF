@@ -20,6 +20,33 @@ void closeNVS(nvs_handle_t handle)
 {
     nvs_close(handle);
 }
+// -----удаляем ключ из NVS
+esp_err_t EraseKeyNVS(const char *nvs_key)
+{
+    nvs_handle_t nvs_handle;
+    esp_err_t err = openNVS(&nvs_handle);
+    if (err != ESP_OK)
+    {
+        return err;
+    }
+    err = nvs_erase_key(nvs_handle, nvs_key);
+    if (err != ESP_OK)
+    {
+        nvs_close(nvs_handle); // Закрытие хранилища перед выходом из функции
+        return err;            // Обработка ошибки удаления ключа
+    }
+
+    // Закрытие хранилища после успешного удаления ключа
+    err = nvs_commit(nvs_handle);
+    if (err != ESP_OK)
+    {
+        nvs_close(nvs_handle); // Закрытие хранилища перед выходом из функции
+        return err;            // Обработка ошибки сохранения изменений
+    }
+
+    nvs_close(nvs_handle); // Закрытие хранилища после успешного сохранения изменений
+    return ESP_OK;         // Возвращаем успешный результат
+}
 //---- чтение blob из NVS -----------------
 esp_err_t readBlobNVS(const char *nvs_key, nvs_data_t *data)
 {

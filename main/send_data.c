@@ -219,4 +219,13 @@ void send_data(uint16_t sensor_val, int param_ep, char *cluster)
 
 #endif
     }
+
+    if (strcmp(cluster, "on_off") == 0)
+    {
+#ifdef MODE_ZIGBEE
+
+        reportAttribute(param_ep, ESP_ZB_ZCL_CLUSTER_ID_ON_OFF, ESP_ZB_ZCL_ATTR_ON_OFF_ON_OFF_ID, &sensor_val, 1);
+
+#endif
+    }
 }

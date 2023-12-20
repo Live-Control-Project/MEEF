@@ -16,3 +16,4 @@ esp_err_t readIntFromNVS(const char *nvs_key, int32_t *value);
 esp_err_t saveIntToNVS(const char *nvs_key, int32_t value);
 esp_err_t saveBlobToNVS(const char *nvs_key, nvs_data_t *data);
 esp_err_t readBlobNVS(const char *nvs_key, nvs_data_t *data);
+esp_err_t EraseKeyNVS(const char *nvs_key);
