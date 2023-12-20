@@ -1,6 +1,3 @@
-#include "zigbee_init.h"
-#include "zcl/esp_zigbee_zcl_common.h"
-
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
 #include "esp_log.h"

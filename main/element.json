@@ -33,6 +33,7 @@
     "sensor": "rele",
     "id": "rele",
     "pin": 4,
+    "saveState": 0,
     "clasters": [
       "on_off"
     ],
