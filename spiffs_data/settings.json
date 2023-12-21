@@ -1,11 +1,25 @@
 [
     {
-        "sensor": "gpioIN",
-        "id": "gpioIN92",
-        "int": 100,
-        "pin": 13,
-        "EP": 1,
-        "claster": "Contact"
+        "sensor": "AHT",
+        "id": "aht",
+        "int": 50,
+        "pin_SCL": 19,
+        "pin_SDA": 18,
+        "I2C_GND": 1,
+        "claster": "temperature",
+        "sensor_type": "AHT20",
+        "EP": 1
+    },
+    {
+        "sensor": "AHT",
+        "id": "aht1",
+        "int": 60,
+        "pin_SCL": 19,
+        "pin_SDA": 18,
+        "I2C_GND": 1,
+        "claster": "humidity",
+        "sensor_type": "AHT20",
+        "EP": 1
     },
     {
         "sensor": "rele",
