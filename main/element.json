@@ -33,6 +33,7 @@
     "sensor": "rele",
     "id": "rele",
     "pin": 4,
+    "saveState": 0,
     "clasters": [
       "on_off"
     ],
@@ -53,6 +54,22 @@
       "humidity"
     ],
     "sensor_type": "AM2301",
+    "EP": 1
+  },
+  {
+    "num": 5,
+    "name": "5. AHT (temperature humidity)",
+    "sensor": "AHT",
+    "id": "aht",
+    "int": 60,
+    "pin_SCL": 19,
+    "pin_SDA": 18,
+    "I2C_GND": 1,
+    "clasters": [
+      "temperature",
+      "humidity"
+    ],
+    "sensor_type": "AHT20",
     "EP": 1
   }
 ]

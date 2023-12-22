@@ -1,18 +1,48 @@
 [
     {
-        "sensor": "gpioIN",
-        "id": "gpioIN92",
-        "int": 100,
-        "pin": 13,
-        "EP": 1,
-        "claster": "Contact"
+        "sensor": "AHT",
+        "id": "aht",
+        "int": 50,
+        "pin_SCL": 19,
+        "pin_SDA": 18,
+        "I2C_GND": 1,
+        "claster": "temperature",
+        "sensor_type": "AHT20",
+        "EP": 1
     },
     {
-        "sensor": "gpioIN",
-        "id": "gpioIN35",
-        "int": 100,
-        "pin": 15,
-        "EP": 2,
-        "claster": "Occupancy"
+        "sensor": "AHT",
+        "id": "aht1",
+        "int": 60,
+        "pin_SCL": 19,
+        "pin_SDA": 18,
+        "I2C_GND": 1,
+        "claster": "humidity",
+        "sensor_type": "AHT20",
+        "EP": 1
+    },
+    {
+        "sensor": "rele",
+        "id": "rele",
+        "pin": 4,
+        "saveState": 1,
+        "claster": "on_off",
+        "EP": 1
+    },
+    {
+        "sensor": "rele",
+        "id": "rele1",
+        "pin": 2,
+        "saveState": 1,
+        "claster": "on_off",
+        "EP": 2
+    },
+    {
+        "sensor": "rele",
+        "id": "rele2",
+        "pin": 12,
+        "saveState": 0,
+        "claster": "on_off",
+        "EP": 3
     }
 ]

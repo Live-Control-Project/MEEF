@@ -7,12 +7,13 @@
 #include "string.h"
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
-
+#include "utils_NVS.h"
 #include "iot_button.h"
 #include <time.h>
 #include <sys/time.h>
 #include "cJSON.h"
 #include "led_lamp.h"
+#include "sensor_gpioOUT.h"
 
 extern cJSON *sensor_json;
 /*------ Clobal definitions -----------*/
@@ -122,11 +123,15 @@ static esp_err_t zb_attribute_handler(const esp_zb_zcl_set_attr_value_message_t 
                 cJSON *ep_ = cJSON_GetObjectItemCaseSensitive(item, "EP");
                 cJSON *cluster_ = cJSON_GetObjectItemCaseSensitive(item, "claster");
                 cJSON *sensor_ = cJSON_GetObjectItemCaseSensitive(item, "sensor");
-                if (cJSON_IsNumber(ep_) && cJSON_IsString(cluster_))
+                cJSON *saveState_ = cJSON_GetObjectItemCaseSensitive(item, "saveState");
+                cJSON *id_ = cJSON_GetObjectItemCaseSensitive(item, "id");
+                if (cJSON_IsString(sensor_) && cJSON_IsString(id_) && cJSON_IsNumber(saveState_) && cJSON_IsNumber(ep_) && cJSON_IsString(cluster_))
                 {
                     char *cluster = cluster_->valuestring;
                     char *sensor = sensor_->valuestring;
+                    char *id = id_->valuestring;
                     int EP = ep_->valueint;
+                    int saveState = saveState_->valueint;
                     // RELE
                     if (message->info.dst_endpoint == EP && strcmp(cluster, "on_off") == 0 && strcmp(sensor, "rele") == 0)
                     {
@@ -134,6 +139,19 @@ static esp_err_t zb_attribute_handler(const esp_zb_zcl_set_attr_value_message_t 
                         rele_state = message->attribute.data.value ? *(bool *)message->attribute.data.value : rele_state;
                         gpio_set_level(pin, rele_state);
                         ESP_LOGI(TAG, "PIN %d sets to %s", pin, rele_state ? "On" : "Off");
+                        if (saveState == 1)
+                        {
+                            int32_t value_to_save = *(int32_t *)message->attribute.data.value;
+                            esp_err_t result = saveIntToNVS(id, value_to_save);
+                            if (result != ESP_OK)
+                            {
+                                ESP_LOGE(TAG, "Error saving int to NVS: %d", result);
+                            }
+                            else
+                            {
+                                ESP_LOGI(TAG, "Rele state saved ");
+                            }
+                        }
                     }
                     // LED LAMP
                     if (message->info.dst_endpoint == EP && strcmp(cluster, "on_off") == 0 && strcmp(sensor, "ledLamp") == 0)
@@ -279,6 +297,8 @@ void esp_zb_app_signal_handler(esp_zb_app_signal_t *signal_struct)
                      extended_pan_id[3], extended_pan_id[2], extended_pan_id[1], extended_pan_id[0],
                      esp_zb_get_pan_id(), esp_zb_get_current_channel());
             read_server_time();
+            // Восстанавливаем состояние RELE и публикуем в zigbee cеть
+            sensor_gpioOUT(sensor_json);
         }
         break;
     case ESP_ZB_ZDO_SIGNAL_LEAVE:
@@ -452,11 +472,10 @@ static void esp_zb_task(void *pvParameters)
 
             else if (strcmp(cluster, "level_control") == 0)
             {
-               
+
                 esp_zb_attribute_list_t *esp_zb_level_control_cluster = esp_zb_zcl_attr_list_create(ESP_ZB_ZCL_CLUSTER_ID_LEVEL_CONTROL);
                 esp_zb_level_cluster_add_attr(esp_zb_level_control_cluster, ESP_ZB_ZCL_ATTR_LEVEL_CONTROL_CURRENT_LEVEL_ID, &light_data.level);
                 esp_zb_cluster_list_add_level_cluster(esp_zb_cluster_list, esp_zb_level_control_cluster, ESP_ZB_ZCL_CLUSTER_SERVER_ROLE);
-              
             }
             else if (strcmp(cluster, "color_control") == 0)
             {
@@ -649,6 +668,19 @@ void zigbee_init(void)
         .host_config = ESP_ZB_DEFAULT_HOST_CONFIG(),
     };
     ESP_ERROR_CHECK(nvs_flash_init());
+    // ESP_ERROR_CHECK(nvs_flash_erase());
+    /*
+    esp_err_t err = nvs_flash_init();
+    if (err == ESP_ERR_NVS_NO_FREE_PAGES || err == ESP_ERR_NVS_NEW_VERSION_FOUND)
+    {
+        ESP_ERROR_CHECK(nvs_flash_erase());
+        err = nvs_flash_init();
+    }
+    if (err != ESP_OK)
+    {
+        printf("Error (%s) opening NVS handle!\n", esp_err_to_name(err));
+    }
+    */
     ESP_ERROR_CHECK(esp_zb_platform_config(&config));
 
     xTaskCreate(esp_zb_task, "Zigbee_main", 4096, NULL, 6, NULL);

@@ -26,7 +26,8 @@
         "sensor.h": "c",
         "sensor_gpioin.h": "c",
         "array": "c",
-        "string_view": "c"
+        "string_view": "c",
+        "functional": "c"
     },
     "idf.adapterTargetName": "esp32c6",
     "C_Cpp.errorSquiggles": "disabled",
