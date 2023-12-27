@@ -16,6 +16,7 @@
 #include "sensor_gpioOUT.h"
 
 extern cJSON *sensor_json;
+extern cJSON *config_json;
 /*------ Clobal definitions -----------*/
 static char manufacturer[16], model[16], firmware_version[16];
 bool time_updated = false, connected = false;
@@ -350,6 +351,224 @@ esp_zb_cluster_list_t *get_existing_or_create_new_list(int index)
     // Возвращаем существующий или только что созданный список кластеров
     return info->cluster_list;
 }
+void createAttributes(esp_zb_cluster_list_t *esp_zb_cluster_list, char *cluster, int EP)
+{
+    uint16_t undefined_value;
+    undefined_value = 0x8000;
+
+    if (strcmp(cluster, "illuminance") == 0)
+    {
+        esp_zb_attribute_list_t *esp_zb_illuminance_meas_cluster = esp_zb_zcl_attr_list_create(ESP_ZB_ZCL_CLUSTER_ID_ILLUMINANCE_MEASUREMENT);
+        esp_zb_illuminance_meas_cluster_add_attr(esp_zb_illuminance_meas_cluster, ESP_ZB_ZCL_ATTR_TEMP_MEASUREMENT_VALUE_ID, &undefined_value);
+        esp_zb_illuminance_meas_cluster_add_attr(esp_zb_illuminance_meas_cluster, ESP_ZB_ZCL_ATTR_TEMP_MEASUREMENT_MIN_VALUE_ID, &undefined_value);
+        esp_zb_illuminance_meas_cluster_add_attr(esp_zb_illuminance_meas_cluster, ESP_ZB_ZCL_ATTR_TEMP_MEASUREMENT_MAX_VALUE_ID, &undefined_value);
+        esp_zb_cluster_list_add_illuminance_meas_cluster(esp_zb_cluster_list, esp_zb_illuminance_meas_cluster, ESP_ZB_ZCL_CLUSTER_SERVER_ROLE);
+    }
+
+    else if (strcmp(cluster, "temperature") == 0)
+    {
+        esp_zb_attribute_list_t *esp_zb_temperature_meas_cluster = esp_zb_zcl_attr_list_create(ESP_ZB_ZCL_CLUSTER_ID_TEMP_MEASUREMENT);
+        esp_zb_temperature_meas_cluster_add_attr(esp_zb_temperature_meas_cluster, ESP_ZB_ZCL_ATTR_TEMP_MEASUREMENT_VALUE_ID, &undefined_value);
+        esp_zb_temperature_meas_cluster_add_attr(esp_zb_temperature_meas_cluster, ESP_ZB_ZCL_ATTR_TEMP_MEASUREMENT_MIN_VALUE_ID, &undefined_value);
+        esp_zb_temperature_meas_cluster_add_attr(esp_zb_temperature_meas_cluster, ESP_ZB_ZCL_ATTR_TEMP_MEASUREMENT_MAX_VALUE_ID, &undefined_value);
+        esp_zb_cluster_list_add_temperature_meas_cluster(esp_zb_cluster_list, esp_zb_temperature_meas_cluster, ESP_ZB_ZCL_CLUSTER_SERVER_ROLE);
+    }
+
+    else if (strcmp(cluster, "humidity") == 0)
+    {
+        esp_zb_attribute_list_t *esp_zb_humidity_meas_cluster = esp_zb_zcl_attr_list_create(ESP_ZB_ZCL_CLUSTER_ID_REL_HUMIDITY_MEASUREMENT);
+        esp_zb_humidity_meas_cluster_add_attr(esp_zb_humidity_meas_cluster, ESP_ZB_ZCL_ATTR_REL_HUMIDITY_MEASUREMENT_VALUE_ID, &undefined_value);
+        esp_zb_humidity_meas_cluster_add_attr(esp_zb_humidity_meas_cluster, ESP_ZB_ZCL_ATTR_REL_HUMIDITY_MEASUREMENT_MIN_VALUE_ID, &undefined_value);
+        esp_zb_humidity_meas_cluster_add_attr(esp_zb_humidity_meas_cluster, ESP_ZB_ZCL_ATTR_REL_HUMIDITY_MEASUREMENT_MAX_VALUE_ID, &undefined_value);
+        esp_zb_cluster_list_add_humidity_meas_cluster(esp_zb_cluster_list, esp_zb_humidity_meas_cluster, ESP_ZB_ZCL_CLUSTER_SERVER_ROLE);
+    }
+    else if (strcmp(cluster, "pressure") == 0)
+    {
+        esp_zb_attribute_list_t *esp_zb_press_meas_cluster = esp_zb_zcl_attr_list_create(ESP_ZB_ZCL_CLUSTER_ID_PRESSURE_MEASUREMENT);
+        esp_zb_pressure_meas_cluster_add_attr(esp_zb_press_meas_cluster, ESP_ZB_ZCL_ATTR_PRESSURE_MEASUREMENT_VALUE_ID, &undefined_value);
+        esp_zb_pressure_meas_cluster_add_attr(esp_zb_press_meas_cluster, ESP_ZB_ZCL_ATTR_PRESSURE_MEASUREMENT_MIN_VALUE_ID, &undefined_value);
+        esp_zb_pressure_meas_cluster_add_attr(esp_zb_press_meas_cluster, ESP_ZB_ZCL_ATTR_PRESSURE_MEASUREMENT_MAX_VALUE_ID, &undefined_value);
+        esp_zb_cluster_list_add_pressure_meas_cluster(esp_zb_cluster_list, esp_zb_press_meas_cluster, ESP_ZB_ZCL_CLUSTER_SERVER_ROLE);
+    }
+    else if (strcmp(cluster, "on_off") == 0)
+    {
+        // ------------------------------ Cluster on_off ------------------------------
+        esp_zb_on_off_cluster_cfg_t on_off_cfg = {
+            .on_off = 0,
+        };
+        esp_zb_attribute_list_t *esp_zb_on_off_cluster = esp_zb_on_off_cluster_create(&on_off_cfg);
+        esp_zb_cluster_list_add_on_off_cluster(esp_zb_cluster_list, esp_zb_on_off_cluster, ESP_ZB_ZCL_CLUSTER_SERVER_ROLE);
+    }
+
+    else if (strcmp(cluster, "level_control") == 0)
+    {
+
+        esp_zb_attribute_list_t *esp_zb_level_control_cluster = esp_zb_zcl_attr_list_create(ESP_ZB_ZCL_CLUSTER_ID_LEVEL_CONTROL);
+        esp_zb_level_cluster_add_attr(esp_zb_level_control_cluster, ESP_ZB_ZCL_ATTR_LEVEL_CONTROL_CURRENT_LEVEL_ID, &light_data.level);
+        esp_zb_cluster_list_add_level_cluster(esp_zb_cluster_list, esp_zb_level_control_cluster, ESP_ZB_ZCL_CLUSTER_SERVER_ROLE);
+    }
+    else if (strcmp(cluster, "color_control") == 0)
+    {
+        // ------------------------------ Cluster color_control ------------------------------
+        esp_zb_attribute_list_t *esp_zb_color_control_cluster = esp_zb_zcl_attr_list_create(ESP_ZB_ZCL_CLUSTER_ID_COLOR_CONTROL);
+        esp_zb_color_control_cluster_add_attr(esp_zb_color_control_cluster, ESP_ZB_ZCL_ATTR_COLOR_CONTROL_CURRENT_HUE_ID, &light_data.color_h);
+        esp_zb_color_control_cluster_add_attr(esp_zb_color_control_cluster, ESP_ZB_ZCL_ATTR_COLOR_CONTROL_CURRENT_SATURATION_ID, &light_data.color_s);
+        esp_zb_color_control_cluster_add_attr(esp_zb_color_control_cluster, ESP_ZB_ZCL_ATTR_COLOR_CONTROL_CURRENT_X_ID, &light_data.color_x);
+        esp_zb_color_control_cluster_add_attr(esp_zb_color_control_cluster, ESP_ZB_ZCL_ATTR_COLOR_CONTROL_CURRENT_Y_ID, &light_data.color_y);
+        esp_zb_color_control_cluster_add_attr(esp_zb_color_control_cluster, ESP_ZB_ZCL_ATTR_COLOR_CONTROL_COLOR_MODE_ID, &light_data.color_mode);
+        esp_zb_color_control_cluster_add_attr(esp_zb_color_control_cluster, ESP_ZB_ZCL_ATTR_COLOR_CONTROL_ENHANCED_COLOR_MODE_ID, &light_data.color_mode);
+        esp_zb_color_control_cluster_add_attr(esp_zb_color_control_cluster, ESP_ZB_ZCL_ATTR_COLOR_CONTROL_COLOR_CAPABILITIES_ID, &color_capabilities);
+        esp_zb_cluster_list_add_color_control_cluster(esp_zb_cluster_list, esp_zb_color_control_cluster, ESP_ZB_ZCL_CLUSTER_SERVER_ROLE);
+    }
+
+    else if (strcmp(cluster, "BINARY") == 0)
+    {
+        // ------------------------------ Cluster BINARY INPUT ------------------------------
+        esp_zb_binary_input_cluster_cfg_t binary_input_cfg = {
+            .out_of_service = 0,
+            .status_flags = 0,
+        };
+        uint8_t present_value = 0;
+        esp_zb_attribute_list_t *esp_zb_binary_input_cluster = esp_zb_binary_input_cluster_create(&binary_input_cfg);
+        esp_zb_binary_input_cluster_add_attr(esp_zb_binary_input_cluster, ESP_ZB_ZCL_ATTR_BINARY_INPUT_PRESENT_VALUE_ID, &present_value);
+        esp_zb_cluster_list_add_binary_input_cluster(esp_zb_cluster_list, esp_zb_binary_input_cluster, ESP_ZB_ZCL_CLUSTER_SERVER_ROLE);
+    }
+    else if (strcmp(cluster, "ZoneStatus") == 0)
+    {
+        // ------------------------------ Cluster ZoneStatus Standard CIE   ------------------------------
+
+        esp_zb_ias_zone_cluster_cfg_t contact_switch_cfg = {
+            .zone_state = 0x00,
+            .zone_type = 0x0000,
+            .zone_status = 0x00,
+            .ias_cie_addr = ESP_ZB_ZCL_ZONE_IAS_CIE_ADDR_DEFAULT,
+            //.zone_id = 0,
+        };
+
+        esp_zb_attribute_list_t *esp_zb_ias_zone_cluster = esp_zb_ias_zone_cluster_create(&contact_switch_cfg);
+        esp_zb_cluster_list_add_ias_zone_cluster(esp_zb_cluster_list, esp_zb_ias_zone_cluster, ESP_ZB_ZCL_CLUSTER_SERVER_ROLE);
+    }
+    else if (strcmp(cluster, "Motion") == 0)
+    {
+        // ------------------------------ Cluster Motion sensor   ------------------------------
+
+        esp_zb_ias_zone_cluster_cfg_t contact_switch_cfg = {
+            .zone_state = 0x00,
+            .zone_type = 0x000d,
+            .zone_status = 0x00,
+            .ias_cie_addr = ESP_ZB_ZCL_ZONE_IAS_CIE_ADDR_DEFAULT,
+            //.zone_id = 0,
+        };
+
+        esp_zb_attribute_list_t *esp_zb_ias_zone_cluster = esp_zb_ias_zone_cluster_create(&contact_switch_cfg);
+        esp_zb_cluster_list_add_ias_zone_cluster(esp_zb_cluster_list, esp_zb_ias_zone_cluster, ESP_ZB_ZCL_CLUSTER_SERVER_ROLE);
+    }
+    else if (strcmp(cluster, "Contact") == 0)
+    {
+        // ------------------------------ Cluster Contact switch  ------------------------------
+
+        esp_zb_ias_zone_cluster_cfg_t contact_switch_cfg = {
+            .zone_state = 0x00,
+            .zone_type = 0x0015,
+            .zone_status = 0x00,
+            .ias_cie_addr = ESP_ZB_ZCL_ZONE_IAS_CIE_ADDR_DEFAULT,
+            //.zone_id = 0,
+        };
+
+        esp_zb_attribute_list_t *esp_zb_ias_zone_cluster = esp_zb_ias_zone_cluster_create(&contact_switch_cfg);
+        esp_zb_cluster_list_add_ias_zone_cluster(esp_zb_cluster_list, esp_zb_ias_zone_cluster, ESP_ZB_ZCL_CLUSTER_SERVER_ROLE);
+    }
+    else if (strcmp(cluster, "Door_Window") == 0)
+    {
+        // ------------------------------ Cluster Door/Window handle  ------------------------------
+
+        esp_zb_ias_zone_cluster_cfg_t contact_switch_cfg = {
+            .zone_state = 0x00,
+            .zone_type = 0x0016,
+            .zone_status = 0x00,
+            .ias_cie_addr = ESP_ZB_ZCL_ZONE_IAS_CIE_ADDR_DEFAULT,
+            //.zone_id = 0,
+        };
+
+        esp_zb_attribute_list_t *esp_zb_ias_zone_cluster = esp_zb_ias_zone_cluster_create(&contact_switch_cfg);
+        esp_zb_cluster_list_add_ias_zone_cluster(esp_zb_cluster_list, esp_zb_ias_zone_cluster, ESP_ZB_ZCL_CLUSTER_SERVER_ROLE);
+    }
+    else if (strcmp(cluster, "Fire") == 0)
+    {
+        // ------------------------------ Cluster Fire sensor  ------------------------------
+
+        esp_zb_ias_zone_cluster_cfg_t contact_switch_cfg = {
+            .zone_state = 0x00,
+            .zone_type = 0x0028,
+            .zone_status = 0x00,
+            .ias_cie_addr = ESP_ZB_ZCL_ZONE_IAS_CIE_ADDR_DEFAULT,
+            //.zone_id = 0,
+        };
+
+        esp_zb_attribute_list_t *esp_zb_ias_zone_cluster = esp_zb_ias_zone_cluster_create(&contact_switch_cfg);
+        esp_zb_cluster_list_add_ias_zone_cluster(esp_zb_cluster_list, esp_zb_ias_zone_cluster, ESP_ZB_ZCL_CLUSTER_SERVER_ROLE);
+    }
+    else if (strcmp(cluster, "Occupancy") == 0)
+    {
+        // ------------------------------ Cluster Occupancy switch  ------------------------------
+
+        esp_zb_ias_zone_cluster_cfg_t contact_switch_cfg = {
+            .zone_state = 0x00,
+            .zone_type = 0x000D,
+            .zone_status = 0x00,
+            .ias_cie_addr = ESP_ZB_ZCL_ZONE_IAS_CIE_ADDR_DEFAULT,
+            //.zone_id = 0,
+        };
+
+        esp_zb_attribute_list_t *esp_zb_ias_zone_cluster = esp_zb_ias_zone_cluster_create(&contact_switch_cfg);
+        esp_zb_cluster_list_add_ias_zone_cluster(esp_zb_cluster_list, esp_zb_ias_zone_cluster, ESP_ZB_ZCL_CLUSTER_SERVER_ROLE);
+    }
+    else if (strcmp(cluster, "WaterLeak") == 0)
+    {
+        // ------------------------------ Cluster WaterLeak switch  ------------------------------
+
+        esp_zb_ias_zone_cluster_cfg_t contact_switch_cfg = {
+            .zone_state = 0x00,
+            .zone_type = 0x002A,
+            .zone_status = 0x00,
+            .ias_cie_addr = ESP_ZB_ZCL_ZONE_IAS_CIE_ADDR_DEFAULT,
+            //.zone_id = 0,
+        };
+
+        esp_zb_attribute_list_t *esp_zb_ias_zone_cluster = esp_zb_ias_zone_cluster_create(&contact_switch_cfg);
+        esp_zb_cluster_list_add_ias_zone_cluster(esp_zb_cluster_list, esp_zb_ias_zone_cluster, ESP_ZB_ZCL_CLUSTER_SERVER_ROLE);
+    }
+    else if (strcmp(cluster, "Carbon") == 0)
+    {
+        // ------------------------------ Cluster Carbon Monoxide (CO) sensorswitch  ------------------------------
+
+        esp_zb_ias_zone_cluster_cfg_t contact_switch_cfg = {
+            .zone_state = 0x00,
+            .zone_type = 0x002b,
+            .zone_status = 0x00,
+            .ias_cie_addr = ESP_ZB_ZCL_ZONE_IAS_CIE_ADDR_DEFAULT,
+            //.zone_id = 0,
+        };
+
+        esp_zb_attribute_list_t *esp_zb_ias_zone_cluster = esp_zb_ias_zone_cluster_create(&contact_switch_cfg);
+        esp_zb_cluster_list_add_ias_zone_cluster(esp_zb_cluster_list, esp_zb_ias_zone_cluster, ESP_ZB_ZCL_CLUSTER_SERVER_ROLE);
+    }
+    else if (strcmp(cluster, "Remote_Control") == 0)
+    {
+        // ------------------------------ Cluster Remote Control  ------------------------------
+
+        esp_zb_ias_zone_cluster_cfg_t contact_switch_cfg = {
+            .zone_state = 0x00,
+            .zone_type = 0x010f,
+            .zone_status = 0x00,
+            .ias_cie_addr = ESP_ZB_ZCL_ZONE_IAS_CIE_ADDR_DEFAULT,
+            //.zone_id = 0,
+        };
+
+        esp_zb_attribute_list_t *esp_zb_ias_zone_cluster = esp_zb_ias_zone_cluster_create(&contact_switch_cfg);
+        esp_zb_cluster_list_add_ias_zone_cluster(esp_zb_cluster_list, esp_zb_ias_zone_cluster, ESP_ZB_ZCL_CLUSTER_SERVER_ROLE);
+    }
+}
 
 static void esp_zb_task(void *pvParameters)
 {
@@ -357,11 +576,42 @@ static void esp_zb_task(void *pvParameters)
     esp_zb_cfg_t zb_nwk_cfg = ESP_ZB_ZR_CONFIG();
     esp_zb_init(&zb_nwk_cfg);
 
-    uint16_t undefined_value;
-    undefined_value = 0x8000;
+    cJSON *manufactuer = cJSON_GetObjectItemCaseSensitive(config_json->child, "manufactuer");
+    if (manufactuer != NULL && cJSON_IsString(manufactuer))
+    {
+        ESP_LOGI(TAG, "Manufactuer Name: %s", manufactuer->valuestring);
+        set_zcl_string(manufacturer, manufactuer->valuestring);
+    }
+    else
+    {
+        ESP_LOGE(TAG, "Error accessing manufactuer name from JSON");
+        set_zcl_string(manufacturer, MANUFACTURER_NAME);
+    }
+    cJSON *modelname = cJSON_GetObjectItemCaseSensitive(config_json->child, "modelname");
+    if (modelname != NULL && cJSON_IsString(modelname))
+    {
+        ESP_LOGI(TAG, "Model Name: %s", modelname->valuestring);
+        set_zcl_string(model, modelname->valuestring);
+    }
+    else
+    {
+        ESP_LOGE(TAG, "Error accessing model name from JSON");
+        set_zcl_string(model, MODEL_NAME);
+    }
+    cJSON *manufactuer_id = cJSON_GetObjectItemCaseSensitive(config_json->child, "manufactuer_id");
+    char manuf_id;
+    if (manufactuer_id != NULL && cJSON_IsString(manufactuer_id))
+    {
+        ESP_LOGI(TAG, "OTA_UPGRADE_MANUFACTURER: %s", manufactuer_id->valuestring);
+        manuf_id = manufactuer_id->valuestring;
+    }
+    else
+    {
+        manuf_id = OTA_UPGRADE_MANUFACTURER;
+        ESP_LOGE(TAG, "Error accessing OTA_UPGRADE_MANUFACTURER from JSON");
+    }
     /* basic cluster create with fully customized */
-    set_zcl_string(manufacturer, MANUFACTURER_NAME);
-    set_zcl_string(model, MODEL_NAME);
+
     set_zcl_string(firmware_version, FIRMWARE_VERSION);
     uint8_t dc_power_source;
     dc_power_source = 4;
@@ -388,7 +638,7 @@ static void esp_zb_task(void *pvParameters)
     esp_zb_ota_cluster_cfg_t ota_cluster_cfg = {
         .ota_upgrade_file_version = OTA_UPGRADE_RUNNING_FILE_VERSION,
         .ota_upgrade_downloaded_file_ver = OTA_UPGRADE_DOWNLOADED_FILE_VERSION,
-        .ota_upgrade_manufacturer = OTA_UPGRADE_MANUFACTURER,
+        .ota_upgrade_manufacturer = manuf_id,
         .ota_upgrade_image_type = OTA_UPGRADE_IMAGE_TYPE,
     };
     esp_zb_attribute_list_t *esp_zb_ota_client_cluster = esp_zb_ota_cluster_create(&ota_cluster_cfg);
@@ -417,226 +667,39 @@ static void esp_zb_task(void *pvParameters)
     {
         cJSON *ep_ = cJSON_GetObjectItemCaseSensitive(item, "EP");
         cJSON *cluster_ = cJSON_GetObjectItemCaseSensitive(item, "claster");
-        if (cJSON_IsNumber(ep_) && cJSON_IsString(cluster_))
+        cJSON *sensor_ = cJSON_GetObjectItemCaseSensitive(item, "sensor");
+        if (cJSON_IsString(sensor_) && cJSON_IsNumber(ep_) && cJSON_IsString(cluster_))
         {
             char *cluster = cluster_->valuestring;
             int EP = ep_->valueint;
-
+            char *sensor = sensor_->valuestring;
             ESP_LOGW(TAG, "Cluster: %s created. EP: %d", cluster, EP);
 
             esp_zb_cluster_list_t *esp_zb_cluster_list = get_existing_or_create_new_list(EP);
-
-            if (strcmp(cluster, "illuminance") == 0)
+            if (strcmp(sensor, "DHT") == 0 && strcmp(cluster, "all") == 0)
             {
-                esp_zb_attribute_list_t *esp_zb_illuminance_meas_cluster = esp_zb_zcl_attr_list_create(ESP_ZB_ZCL_CLUSTER_ID_ILLUMINANCE_MEASUREMENT);
-                esp_zb_illuminance_meas_cluster_add_attr(esp_zb_illuminance_meas_cluster, ESP_ZB_ZCL_ATTR_TEMP_MEASUREMENT_VALUE_ID, &undefined_value);
-                esp_zb_illuminance_meas_cluster_add_attr(esp_zb_illuminance_meas_cluster, ESP_ZB_ZCL_ATTR_TEMP_MEASUREMENT_MIN_VALUE_ID, &undefined_value);
-                esp_zb_illuminance_meas_cluster_add_attr(esp_zb_illuminance_meas_cluster, ESP_ZB_ZCL_ATTR_TEMP_MEASUREMENT_MAX_VALUE_ID, &undefined_value);
-                esp_zb_cluster_list_add_illuminance_meas_cluster(esp_zb_cluster_list, esp_zb_illuminance_meas_cluster, ESP_ZB_ZCL_CLUSTER_SERVER_ROLE);
+                createAttributes(esp_zb_cluster_list, "temperature", EP);
+                createAttributes(esp_zb_cluster_list, "humidity", EP);
             }
-
-            else if (strcmp(cluster, "temperature") == 0)
+            else if (strcmp(sensor, "AHT") == 0 && strcmp(cluster, "all") == 0)
             {
-                esp_zb_attribute_list_t *esp_zb_temperature_meas_cluster = esp_zb_zcl_attr_list_create(ESP_ZB_ZCL_CLUSTER_ID_TEMP_MEASUREMENT);
-                esp_zb_temperature_meas_cluster_add_attr(esp_zb_temperature_meas_cluster, ESP_ZB_ZCL_ATTR_TEMP_MEASUREMENT_VALUE_ID, &undefined_value);
-                esp_zb_temperature_meas_cluster_add_attr(esp_zb_temperature_meas_cluster, ESP_ZB_ZCL_ATTR_TEMP_MEASUREMENT_MIN_VALUE_ID, &undefined_value);
-                esp_zb_temperature_meas_cluster_add_attr(esp_zb_temperature_meas_cluster, ESP_ZB_ZCL_ATTR_TEMP_MEASUREMENT_MAX_VALUE_ID, &undefined_value);
-                esp_zb_cluster_list_add_temperature_meas_cluster(esp_zb_cluster_list, esp_zb_temperature_meas_cluster, ESP_ZB_ZCL_CLUSTER_SERVER_ROLE);
+                createAttributes(esp_zb_cluster_list, "temperature", EP);
+                createAttributes(esp_zb_cluster_list, "humidity", EP);
             }
-
-            else if (strcmp(cluster, "humidity") == 0)
+            else if (strcmp(sensor, "BMP280") == 0 && strcmp(cluster, "all") == 0)
             {
-                esp_zb_attribute_list_t *esp_zb_humidity_meas_cluster = esp_zb_zcl_attr_list_create(ESP_ZB_ZCL_CLUSTER_ID_REL_HUMIDITY_MEASUREMENT);
-                esp_zb_humidity_meas_cluster_add_attr(esp_zb_humidity_meas_cluster, ESP_ZB_ZCL_ATTR_REL_HUMIDITY_MEASUREMENT_VALUE_ID, &undefined_value);
-                esp_zb_humidity_meas_cluster_add_attr(esp_zb_humidity_meas_cluster, ESP_ZB_ZCL_ATTR_REL_HUMIDITY_MEASUREMENT_MIN_VALUE_ID, &undefined_value);
-                esp_zb_humidity_meas_cluster_add_attr(esp_zb_humidity_meas_cluster, ESP_ZB_ZCL_ATTR_REL_HUMIDITY_MEASUREMENT_MAX_VALUE_ID, &undefined_value);
-                esp_zb_cluster_list_add_humidity_meas_cluster(esp_zb_cluster_list, esp_zb_humidity_meas_cluster, ESP_ZB_ZCL_CLUSTER_SERVER_ROLE);
+                createAttributes(esp_zb_cluster_list, "temperature", EP);
+                createAttributes(esp_zb_cluster_list, "pressure", EP);
             }
-            else if (strcmp(cluster, "pressure") == 0)
+            else if (strcmp(sensor, "BME280") == 0 && strcmp(cluster, "all") == 0)
             {
-                esp_zb_attribute_list_t *esp_zb_press_meas_cluster = esp_zb_zcl_attr_list_create(ESP_ZB_ZCL_CLUSTER_ID_PRESSURE_MEASUREMENT);
-                esp_zb_pressure_meas_cluster_add_attr(esp_zb_press_meas_cluster, ESP_ZB_ZCL_ATTR_PRESSURE_MEASUREMENT_VALUE_ID, &undefined_value);
-                esp_zb_pressure_meas_cluster_add_attr(esp_zb_press_meas_cluster, ESP_ZB_ZCL_ATTR_PRESSURE_MEASUREMENT_MIN_VALUE_ID, &undefined_value);
-                esp_zb_pressure_meas_cluster_add_attr(esp_zb_press_meas_cluster, ESP_ZB_ZCL_ATTR_PRESSURE_MEASUREMENT_MAX_VALUE_ID, &undefined_value);
-                esp_zb_cluster_list_add_pressure_meas_cluster(esp_zb_cluster_list, esp_zb_press_meas_cluster, ESP_ZB_ZCL_CLUSTER_SERVER_ROLE);
+                createAttributes(esp_zb_cluster_list, "temperature", EP);
+                createAttributes(esp_zb_cluster_list, "humidity", EP);
+                createAttributes(esp_zb_cluster_list, "pressure", EP);
             }
-            else if (strcmp(cluster, "on_off") == 0)
+            else
             {
-                // ------------------------------ Cluster on_off ------------------------------
-                esp_zb_on_off_cluster_cfg_t on_off_cfg = {
-                    .on_off = 0,
-                };
-                esp_zb_attribute_list_t *esp_zb_on_off_cluster = esp_zb_on_off_cluster_create(&on_off_cfg);
-                esp_zb_cluster_list_add_on_off_cluster(esp_zb_cluster_list, esp_zb_on_off_cluster, ESP_ZB_ZCL_CLUSTER_SERVER_ROLE);
-            }
-
-            else if (strcmp(cluster, "level_control") == 0)
-            {
-
-                esp_zb_attribute_list_t *esp_zb_level_control_cluster = esp_zb_zcl_attr_list_create(ESP_ZB_ZCL_CLUSTER_ID_LEVEL_CONTROL);
-                esp_zb_level_cluster_add_attr(esp_zb_level_control_cluster, ESP_ZB_ZCL_ATTR_LEVEL_CONTROL_CURRENT_LEVEL_ID, &light_data.level);
-                esp_zb_cluster_list_add_level_cluster(esp_zb_cluster_list, esp_zb_level_control_cluster, ESP_ZB_ZCL_CLUSTER_SERVER_ROLE);
-            }
-            else if (strcmp(cluster, "color_control") == 0)
-            {
-                // ------------------------------ Cluster color_control ------------------------------
-                esp_zb_attribute_list_t *esp_zb_color_control_cluster = esp_zb_zcl_attr_list_create(ESP_ZB_ZCL_CLUSTER_ID_COLOR_CONTROL);
-                esp_zb_color_control_cluster_add_attr(esp_zb_color_control_cluster, ESP_ZB_ZCL_ATTR_COLOR_CONTROL_CURRENT_HUE_ID, &light_data.color_h);
-                esp_zb_color_control_cluster_add_attr(esp_zb_color_control_cluster, ESP_ZB_ZCL_ATTR_COLOR_CONTROL_CURRENT_SATURATION_ID, &light_data.color_s);
-                esp_zb_color_control_cluster_add_attr(esp_zb_color_control_cluster, ESP_ZB_ZCL_ATTR_COLOR_CONTROL_CURRENT_X_ID, &light_data.color_x);
-                esp_zb_color_control_cluster_add_attr(esp_zb_color_control_cluster, ESP_ZB_ZCL_ATTR_COLOR_CONTROL_CURRENT_Y_ID, &light_data.color_y);
-                esp_zb_color_control_cluster_add_attr(esp_zb_color_control_cluster, ESP_ZB_ZCL_ATTR_COLOR_CONTROL_COLOR_MODE_ID, &light_data.color_mode);
-                esp_zb_color_control_cluster_add_attr(esp_zb_color_control_cluster, ESP_ZB_ZCL_ATTR_COLOR_CONTROL_ENHANCED_COLOR_MODE_ID, &light_data.color_mode);
-                esp_zb_color_control_cluster_add_attr(esp_zb_color_control_cluster, ESP_ZB_ZCL_ATTR_COLOR_CONTROL_COLOR_CAPABILITIES_ID, &color_capabilities);
-                esp_zb_cluster_list_add_color_control_cluster(esp_zb_cluster_list, esp_zb_color_control_cluster, ESP_ZB_ZCL_CLUSTER_SERVER_ROLE);
-            }
-
-            else if (strcmp(cluster, "BINARY") == 0)
-            {
-                // ------------------------------ Cluster BINARY INPUT ------------------------------
-                esp_zb_binary_input_cluster_cfg_t binary_input_cfg = {
-                    .out_of_service = 0,
-                    .status_flags = 0,
-                };
-                uint8_t present_value = 0;
-                esp_zb_attribute_list_t *esp_zb_binary_input_cluster = esp_zb_binary_input_cluster_create(&binary_input_cfg);
-                esp_zb_binary_input_cluster_add_attr(esp_zb_binary_input_cluster, ESP_ZB_ZCL_ATTR_BINARY_INPUT_PRESENT_VALUE_ID, &present_value);
-                esp_zb_cluster_list_add_binary_input_cluster(esp_zb_cluster_list, esp_zb_binary_input_cluster, ESP_ZB_ZCL_CLUSTER_SERVER_ROLE);
-            }
-            else if (strcmp(cluster, "ZoneStatus") == 0)
-            {
-                // ------------------------------ Cluster ZoneStatus Standard CIE   ------------------------------
-
-                esp_zb_ias_zone_cluster_cfg_t contact_switch_cfg = {
-                    .zone_state = 0x00,
-                    .zone_type = 0x0000,
-                    .zone_status = 0x00,
-                    .ias_cie_addr = ESP_ZB_ZCL_ZONE_IAS_CIE_ADDR_DEFAULT,
-                    //.zone_id = 0,
-                };
-
-                esp_zb_attribute_list_t *esp_zb_ias_zone_cluster = esp_zb_ias_zone_cluster_create(&contact_switch_cfg);
-                esp_zb_cluster_list_add_ias_zone_cluster(esp_zb_cluster_list, esp_zb_ias_zone_cluster, ESP_ZB_ZCL_CLUSTER_SERVER_ROLE);
-            }
-            else if (strcmp(cluster, "Motion") == 0)
-            {
-                // ------------------------------ Cluster Motion sensor   ------------------------------
-
-                esp_zb_ias_zone_cluster_cfg_t contact_switch_cfg = {
-                    .zone_state = 0x00,
-                    .zone_type = 0x000d,
-                    .zone_status = 0x00,
-                    .ias_cie_addr = ESP_ZB_ZCL_ZONE_IAS_CIE_ADDR_DEFAULT,
-                    //.zone_id = 0,
-                };
-
-                esp_zb_attribute_list_t *esp_zb_ias_zone_cluster = esp_zb_ias_zone_cluster_create(&contact_switch_cfg);
-                esp_zb_cluster_list_add_ias_zone_cluster(esp_zb_cluster_list, esp_zb_ias_zone_cluster, ESP_ZB_ZCL_CLUSTER_SERVER_ROLE);
-            }
-            else if (strcmp(cluster, "Contact") == 0)
-            {
-                // ------------------------------ Cluster Contact switch  ------------------------------
-
-                esp_zb_ias_zone_cluster_cfg_t contact_switch_cfg = {
-                    .zone_state = 0x00,
-                    .zone_type = 0x0015,
-                    .zone_status = 0x00,
-                    .ias_cie_addr = ESP_ZB_ZCL_ZONE_IAS_CIE_ADDR_DEFAULT,
-                    //.zone_id = 0,
-                };
-
-                esp_zb_attribute_list_t *esp_zb_ias_zone_cluster = esp_zb_ias_zone_cluster_create(&contact_switch_cfg);
-                esp_zb_cluster_list_add_ias_zone_cluster(esp_zb_cluster_list, esp_zb_ias_zone_cluster, ESP_ZB_ZCL_CLUSTER_SERVER_ROLE);
-            }
-            else if (strcmp(cluster, "Door_Window") == 0)
-            {
-                // ------------------------------ Cluster Door/Window handle  ------------------------------
-
-                esp_zb_ias_zone_cluster_cfg_t contact_switch_cfg = {
-                    .zone_state = 0x00,
-                    .zone_type = 0x0016,
-                    .zone_status = 0x00,
-                    .ias_cie_addr = ESP_ZB_ZCL_ZONE_IAS_CIE_ADDR_DEFAULT,
-                    //.zone_id = 0,
-                };
-
-                esp_zb_attribute_list_t *esp_zb_ias_zone_cluster = esp_zb_ias_zone_cluster_create(&contact_switch_cfg);
-                esp_zb_cluster_list_add_ias_zone_cluster(esp_zb_cluster_list, esp_zb_ias_zone_cluster, ESP_ZB_ZCL_CLUSTER_SERVER_ROLE);
-            }
-            else if (strcmp(cluster, "Fire") == 0)
-            {
-                // ------------------------------ Cluster Fire sensor  ------------------------------
-
-                esp_zb_ias_zone_cluster_cfg_t contact_switch_cfg = {
-                    .zone_state = 0x00,
-                    .zone_type = 0x0028,
-                    .zone_status = 0x00,
-                    .ias_cie_addr = ESP_ZB_ZCL_ZONE_IAS_CIE_ADDR_DEFAULT,
-                    //.zone_id = 0,
-                };
-
-                esp_zb_attribute_list_t *esp_zb_ias_zone_cluster = esp_zb_ias_zone_cluster_create(&contact_switch_cfg);
-                esp_zb_cluster_list_add_ias_zone_cluster(esp_zb_cluster_list, esp_zb_ias_zone_cluster, ESP_ZB_ZCL_CLUSTER_SERVER_ROLE);
-            }
-            else if (strcmp(cluster, "Occupancy") == 0)
-            {
-                // ------------------------------ Cluster Occupancy switch  ------------------------------
-
-                esp_zb_ias_zone_cluster_cfg_t contact_switch_cfg = {
-                    .zone_state = 0x00,
-                    .zone_type = 0x000D,
-                    .zone_status = 0x00,
-                    .ias_cie_addr = ESP_ZB_ZCL_ZONE_IAS_CIE_ADDR_DEFAULT,
-                    //.zone_id = 0,
-                };
-
-                esp_zb_attribute_list_t *esp_zb_ias_zone_cluster = esp_zb_ias_zone_cluster_create(&contact_switch_cfg);
-                esp_zb_cluster_list_add_ias_zone_cluster(esp_zb_cluster_list, esp_zb_ias_zone_cluster, ESP_ZB_ZCL_CLUSTER_SERVER_ROLE);
-            }
-            else if (strcmp(cluster, "WaterLeak") == 0)
-            {
-                // ------------------------------ Cluster WaterLeak switch  ------------------------------
-
-                esp_zb_ias_zone_cluster_cfg_t contact_switch_cfg = {
-                    .zone_state = 0x00,
-                    .zone_type = 0x002A,
-                    .zone_status = 0x00,
-                    .ias_cie_addr = ESP_ZB_ZCL_ZONE_IAS_CIE_ADDR_DEFAULT,
-                    //.zone_id = 0,
-                };
-
-                esp_zb_attribute_list_t *esp_zb_ias_zone_cluster = esp_zb_ias_zone_cluster_create(&contact_switch_cfg);
-                esp_zb_cluster_list_add_ias_zone_cluster(esp_zb_cluster_list, esp_zb_ias_zone_cluster, ESP_ZB_ZCL_CLUSTER_SERVER_ROLE);
-            }
-            else if (strcmp(cluster, "Carbon") == 0)
-            {
-                // ------------------------------ Cluster Carbon Monoxide (CO) sensorswitch  ------------------------------
-
-                esp_zb_ias_zone_cluster_cfg_t contact_switch_cfg = {
-                    .zone_state = 0x00,
-                    .zone_type = 0x002b,
-                    .zone_status = 0x00,
-                    .ias_cie_addr = ESP_ZB_ZCL_ZONE_IAS_CIE_ADDR_DEFAULT,
-                    //.zone_id = 0,
-                };
-
-                esp_zb_attribute_list_t *esp_zb_ias_zone_cluster = esp_zb_ias_zone_cluster_create(&contact_switch_cfg);
-                esp_zb_cluster_list_add_ias_zone_cluster(esp_zb_cluster_list, esp_zb_ias_zone_cluster, ESP_ZB_ZCL_CLUSTER_SERVER_ROLE);
-            }
-            else if (strcmp(cluster, "Remote_Control") == 0)
-            {
-                // ------------------------------ Cluster Remote Control  ------------------------------
-
-                esp_zb_ias_zone_cluster_cfg_t contact_switch_cfg = {
-                    .zone_state = 0x00,
-                    .zone_type = 0x010f,
-                    .zone_status = 0x00,
-                    .ias_cie_addr = ESP_ZB_ZCL_ZONE_IAS_CIE_ADDR_DEFAULT,
-                    //.zone_id = 0,
-                };
-
-                esp_zb_attribute_list_t *esp_zb_ias_zone_cluster = esp_zb_ias_zone_cluster_create(&contact_switch_cfg);
-                esp_zb_cluster_list_add_ias_zone_cluster(esp_zb_cluster_list, esp_zb_ias_zone_cluster, ESP_ZB_ZCL_CLUSTER_SERVER_ROLE);
+                createAttributes(esp_zb_cluster_list, cluster, EP);
             }
         }
         item = item->next;

@@ -44,12 +44,13 @@
   },
   {
     "num": 4,
-    "name": "4. DHT (temperature humidity)",
+    "name": "4. 🌡💧 DHT (temperature humidity)",
     "sensor": "DHT",
     "id": "dht",
     "int": 60,
     "pin": 15,
     "clasters": [
+      "all",
       "temperature",
       "humidity"
     ],
@@ -58,18 +59,55 @@
   },
   {
     "num": 5,
-    "name": "5. AHT (temperature humidity)",
+    "name": "5. 🌡💧 AHT (temperature humidity)",
     "sensor": "AHT",
     "id": "aht",
     "int": 60,
     "pin_SCL": 19,
     "pin_SDA": 18,
     "I2C_GND": 1,
+    "I2C_ADDRESS": "0x36",
     "clasters": [
+      "all",
       "temperature",
       "humidity"
     ],
     "sensor_type": "AHT20",
+    "EP": 1
+  },
+  {
+    "num": 6,
+    "name": "6. 🌡 BMP280 (temperature pressure)",
+    "sensor": "BMP280",
+    "id": "bmp280",
+    "int": 60,
+    "pin_SCL": 19,
+    "pin_SDA": 18,
+    "I2C_GND": 1,
+    "I2C_ADDRESS": "0x76",
+    "clasters": [
+      "all",
+      "temperature",
+      "pressure"
+    ],
+    "EP": 1
+  },
+  {
+    "num": 7,
+    "name": "7. 🌡💧 BME280 (temperature humidity pressure)",
+    "sensor": "BME280",
+    "id": "bme280",
+    "int": 60,
+    "pin_SCL": 19,
+    "pin_SDA": 18,
+    "I2C_GND": 1,
+    "I2C_ADDRESS": "0x76",
+    "clasters": [
+      "all",
+      "temperature",
+      "humidity",
+      "pressure"
+    ],
     "EP": 1
   }
 ]

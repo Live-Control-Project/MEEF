@@ -50,21 +50,29 @@ static void sensor_dht_task(void *pvParameters)
 
     while (1)
     {
+        vTaskDelay(param_int / portTICK_PERIOD_MS);
         if (dht_read_float_data(SENSOR_TYPE, param_pin, &humidity, &temperature) == ESP_OK)
         {
             // ESP_LOGI(TAG, "Humidity: %.1f%% Temp: %.1fC", humidity, temperature);
             // ESP_LOGI(TAG, "dht_cluster: %s", cluster);
             // ESP_LOGI(TAG, "dht_sensor_type: %s", sensor_type);
-
-            if (strcmp(cluster, "temperature") == 0)
+            if (strcmp(cluster, "all") == 0)
             {
-                ESP_LOGI(TAG, "Temp: %.1fC  EP%d: ", temperature, param_ep);
+                ESP_LOGI(TAG, "Humidity: %.1f%% Temp: %.1fC EP: %d: ", humidity, temperature, param_ep);
+                uint16_t dht_val = (uint16_t)(temperature * 100);
+                send_data(dht_val, param_ep, cluster);
+                dht_val = (uint16_t)(humidity * 100);
+                send_data(dht_val, param_ep, cluster);
+            }
+            else if (strcmp(cluster, "temperature") == 0)
+            {
+                ESP_LOGI(TAG, "Temp: %.1fC  EP: %d ", temperature, param_ep);
                 uint16_t dht_val = (uint16_t)(temperature * 100);
                 send_data(dht_val, param_ep, cluster);
             }
             else if (strcmp(cluster, "humidity") == 0)
             {
-                ESP_LOGI(TAG, "Humidity: %.1f%% EP%d: ", humidity, param_ep);
+                ESP_LOGI(TAG, "Humidity: %.1f%% EP: %d ", humidity, param_ep);
                 uint16_t dht_val = (uint16_t)(humidity * 100);
                 send_data(dht_val, param_ep, cluster);
             }
@@ -73,7 +81,6 @@ static void sensor_dht_task(void *pvParameters)
         {
             ESP_LOGE(TAG, "Could not read data from sensor");
         }
-        vTaskDelay(param_int / portTICK_PERIOD_MS);
     }
 }
 //----------------------------------//
@@ -84,6 +91,7 @@ void sensor_dht(cJSON *sensor_json)
     cJSON *item = sensor_json->child;
     while (item != NULL)
     {
+
         cJSON *sensor_ = cJSON_GetObjectItemCaseSensitive(item, "sensor");
         cJSON *sensor_type_ = cJSON_GetObjectItemCaseSensitive(item, "sensor_type");
         cJSON *id_ = cJSON_GetObjectItemCaseSensitive(item, "id");

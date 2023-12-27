@@ -8,6 +8,8 @@
 #include "sensor_gpioin.h"
 #include "sensor_dht.h"
 #include "sensor_aht.h"
+#include "sensor_bmp280.h"
+#include "sensor_ds18x20.h"
 #include "sensor_gpioOUT.h"
 #include "cJSON.h"
 #include "aht.h"
@@ -22,4 +24,6 @@ void sensor_init(void)
 
     ESP_ERROR_CHECK(i2cdev_init());
     sensor_aht(sensor_json);
+    sensor_bmp280(sensor_json);
+    sensor_ds18x20(sensor_json);
 }

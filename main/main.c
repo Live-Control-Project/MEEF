@@ -15,6 +15,7 @@
 #define ESP_ZIGBEE_ENABLED true
 
 cJSON *sensor_json = NULL;
+cJSON *config_json = NULL;
 static const char *TAG = "MAIN";
 void app_main(void)
 {
@@ -62,11 +63,50 @@ void app_main(void)
             {
                 ESP_LOGE(TAG, "Error before: %s", error_ptr);
             }
-            cJSON_Delete(sensor_json);
-            esp_vfs_spiffs_unregister(NULL);
-            return;
+            //            cJSON_Delete(sensor_json);
+            //            esp_vfs_spiffs_unregister(NULL);
+            //            return;
         }
+        FILE *file = fopen("/spiffs_data/config.json", "r");
+        if (file == NULL)
+        {
+            ESP_LOGE(TAG, "File does not exist!");
+        }
+        else
+        {
 
+            fseek(file, 0, SEEK_END);
+            long file_size = ftell(file);
+            fseek(file, 0, SEEK_SET);
+
+            char *json_buffer = (char *)malloc(file_size + 1);
+            if (json_buffer == NULL)
+            {
+                ESP_LOGE(TAG, "Memory allocation failed!");
+                fclose(file);
+                esp_vfs_spiffs_unregister(NULL);
+                return;
+            }
+
+            size_t bytes_read = fread(json_buffer, 1, file_size, file);
+            json_buffer[bytes_read] = '\0'; // Null-terminate the string
+
+            fclose(file);
+            //
+            config_json = cJSON_Parse(json_buffer);
+            if (config_json == NULL)
+            {
+
+                const char *error_ptr = cJSON_GetErrorPtr();
+                if (error_ptr != NULL)
+                {
+                    ESP_LOGE(TAG, "Error before: %s", error_ptr);
+                }
+                cJSON_Delete(config_json);
+                esp_vfs_spiffs_unregister(NULL);
+                return;
+            }
+        }
         // Далее можно работать с объектом JSON, например:
         /*
         cJSON *item = sensor_json->child;
