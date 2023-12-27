@@ -6,25 +6,25 @@
 #include "cJSON.h"
 #include "string.h"
 #include "send_data.h"
-#include "sensor_aht.h"
-#include "aht.h"
+#include "sensor_bmp280.h"
+#include "bmp280.h"
 #include "sensor.h"
 
 #ifndef APP_CPU_NUM
 #define APP_CPU_NUM PRO_CPU_NUM
 #endif
 
-static const char *TAG = "sensor_aht";
-#define AHT_TYPE_AHT1x AHT_TYPE
+static const char *TAG = "sensor_bmp280";
 
 static void send_sensor_data(float data, int ep, const char *cluster)
 {
     ESP_LOGI(TAG, "%s: %.1f EP%d", cluster, data, ep);
-    uint16_t aht_val = (uint16_t)(data * 100);
-    send_data(aht_val, ep, cluster);
+    uint16_t bmp280_val = (uint16_t)(data * 100);
+
+    send_data(bmp280_val, ep, cluster);
 }
 
-static void sensor_aht_task(void *pvParameters)
+static void sensor_bmp280_task(void *pvParameters)
 {
     TaskParameters *params = (TaskParameters *)pvParameters;
     char *param_id = params->param_id;
@@ -36,90 +36,75 @@ static void sensor_aht_task(void *pvParameters)
     char *param_cluster = params->param_cluster;
     char cluster[30] = "";
     strcpy(cluster, param_cluster);
-    int param_ep = params->param_ep;
-    int param_int = params->param_int * 1000;
-    char *param_sensor_type = params->param_sensor_type;
-    char sensor_type[30] = "";
-    strcpy(sensor_type, param_sensor_type);
+
+    //    char *param_I2C_ADDRESS = params->param_I2C_ADDRESS;
+    //    char I2C_ADDRESS[30] = "";
+    //    strcpy(I2C_ADDRESS, param_I2C_ADDRESS);
 
     int I2C_ADDRESS_int = 0;
     sscanf(params->param_I2C_ADDRESS, "%x", &I2C_ADDRESS_int);
-    int AHT_TYPE_AHT20 = I2C_ADDRESS_int;
 
-    int ADDR; // Declare ADDR as a variable
+    int param_ep = params->param_ep;
+    int param_int = params->param_int * 1000;
+    //    char *param_sensor_type = params->param_sensor_type;
+    //    char sensor_type[30] = "";
+    //    strcpy(sensor_type, param_sensor_type);
 
-    if (param_I2C_GND == 1)
-    {
-        ADDR = AHT_I2C_ADDRESS_GND;
-    }
-    else
-    {
-        ADDR = AHT_I2C_ADDRESS_VCC;
-    }
+    bmp280_params_t params_bmp280;
+    bmp280_init_default_params(&params_bmp280);
+    bmp280_t dev;
+    memset(&dev, 0, sizeof(bmp280_t));
 
-    if (strcmp(sensor_type, "AHT10") == 0)
-    {
-#define AHT_TYPE AHT_TYPE_AHT1x
-    }
-    else if (strcmp(sensor_type, "AHT15") == 0)
-    {
-#define AHT_TYPE AHT_TYPE_AHT1x
-    }
-    else if (strcmp(sensor_type, "AHT20") == 0)
-    {
-#define AHT_TYPE AHT_TYPE_AHT20
-    }
+    ESP_ERROR_CHECK(bmp280_init_desc(&dev, I2C_ADDRESS_int, 0, param_pin_SDA, param_pin_SCL));
+    ESP_ERROR_CHECK(bmp280_init(&dev, &params_bmp280));
 
-    aht_t dev = {0};
-    dev.mode = AHT_MODE_NORMAL;
-    dev.type = AHT_TYPE;
+    bool bme280p = dev.id == BME280_CHIP_ID;
 
-    ESP_ERROR_CHECK(aht_init_desc(&dev, ADDR, 0, param_pin_SDA, param_pin_SCL));
-    ESP_ERROR_CHECK(aht_init(&dev));
-
-    bool calibrated;
-    ESP_ERROR_CHECK(aht_get_status(&dev, NULL, &calibrated));
-    if (calibrated)
-        ESP_LOGI(TAG, "Sensor calibrated");
-    else
-        ESP_LOGW(TAG, "Sensor not calibrated!");
-
-    float temperature, humidity;
+    float pressure, temperature, humidity;
 
     while (1)
     {
         vTaskDelay(param_int / portTICK_PERIOD_MS);
-        if (aht_get_data(&dev, &temperature, &humidity) == ESP_OK)
+        if (bmp280_read_float(&dev, &temperature, &pressure, &humidity) == ESP_OK)
         {
+
             if (strcmp(cluster, "all") == 0)
             {
                 send_sensor_data(temperature, param_ep, cluster);
-                send_sensor_data(humidity, param_ep, cluster);
+                send_sensor_data(pressure / 1333.224, param_ep, cluster);
+                if (bme280p)
+                {
+                    send_sensor_data(humidity, param_ep, cluster);
+                }
             }
             else if (strcmp(cluster, "temperature") == 0)
             {
                 send_sensor_data(temperature, param_ep, cluster);
             }
-            else if (strcmp(cluster, "humidity") == 0)
+            else if (strcmp(cluster, "humidity") == 0 && bme280p)
             {
                 send_sensor_data(humidity, param_ep, cluster);
+            }
+            else if (strcmp(cluster, "pressure") == 0)
+            {
+                send_sensor_data(pressure / 1333.224, param_ep, cluster);
             }
         }
         else
         {
-            ESP_LOGE(TAG, "Could not read data from sensor AHT");
+            ESP_LOGE(TAG, "Could not read data from sensor bme280 / bmp280");
         }
     }
 }
 
-void sensor_aht(cJSON *sensor_json)
+void sensor_bmp280(cJSON *sensor_json)
 {
 
     cJSON *item = sensor_json->child;
     while (item != NULL)
     {
         cJSON *sensor_ = cJSON_GetObjectItemCaseSensitive(item, "sensor");
-        cJSON *sensor_type_ = cJSON_GetObjectItemCaseSensitive(item, "sensor_type");
+        //        cJSON *sensor_type_ = cJSON_GetObjectItemCaseSensitive(item, "sensor_type");
         cJSON *id_ = cJSON_GetObjectItemCaseSensitive(item, "id");
         cJSON *int_ = cJSON_GetObjectItemCaseSensitive(item, "int");
         cJSON *pin_SCL_ = cJSON_GetObjectItemCaseSensitive(item, "pin_SCL");
@@ -133,7 +118,8 @@ void sensor_aht(cJSON *sensor_json)
             char *cluster = cluster_->valuestring;
             int EP = ep_->valueint;
             char *sensor = sensor_->valuestring;
-            if ((strcmp(cluster, "humidity") == 0 || strcmp(cluster, "temperature") == 0) && strcmp(sensor, "AHT") == 0)
+
+            if ((strcmp(cluster, "humidity") == 0 || strcmp(cluster, "temperature") == 0 || strcmp(cluster, "pressure") == 0) && (strcmp(sensor, "BMP280") == 0 || strcmp(sensor, "BME280") == 0))
             {
                 TaskParameters taskParams = {
                     .param_pin_SCL = pin_SCL_->valueint,
@@ -144,11 +130,11 @@ void sensor_aht(cJSON *sensor_json)
                     .param_int = int_->valueint,
                     .param_cluster = cluster,
                     .param_id = id_->valuestring,
-                    .param_sensor_type = sensor_type_->valuestring,
+                    //    .param_sensor_type = sensor_type_->valuestring,
                 };
-
                 ESP_LOGW(TAG, "Task: %s created. Cluster: %s EP: %d", sensor, cluster, EP);
-                xTaskCreatePinnedToCore(sensor_aht_task, id_->valuestring, 4096, &taskParams, 5, NULL, APP_CPU_NUM);
+
+                xTaskCreatePinnedToCore(sensor_bmp280_task, id_->valuestring, 4096, &taskParams, 5, NULL, APP_CPU_NUM);
             }
         }
         item = item->next;

@@ -28,7 +28,7 @@ static void reportAttribute(uint8_t endpoint, uint16_t clusterID, uint16_t attri
 
 void send_data(uint16_t sensor_val, int param_ep, char *cluster)
 {
-    ESP_LOGI(TAG, "sensor_val:%d  / endpoint:%d  / cluster:\" %s \"", sensor_val, param_ep, cluster);
+    ESP_LOGI(TAG, "sensor_val: %d  / endpoint: %d  / cluster: \"%s\"", sensor_val, param_ep, cluster);
 
     if (strcmp(cluster, "temperature") == 0)
     {
@@ -47,6 +47,16 @@ void send_data(uint16_t sensor_val, int param_ep, char *cluster)
         if (state_hum != ESP_ZB_ZCL_STATUS_SUCCESS)
         {
             ESP_LOGE(TAG, "Setting humidity attribute failed!");
+        }
+#endif
+    }
+    else if (strcmp(cluster, "pressure") == 0)
+    {
+#ifdef MODE_ZIGBEE
+        esp_zb_zcl_status_t state_hum = esp_zb_zcl_set_attribute_val(param_ep, ESP_ZB_ZCL_CLUSTER_ID_PRESSURE_MEASUREMENT, ESP_ZB_ZCL_CLUSTER_SERVER_ROLE, ESP_ZB_ZCL_ATTR_PRESSURE_MEASUREMENT_VALUE_ID, &sensor_val, false);
+        if (state_hum != ESP_ZB_ZCL_STATUS_SUCCESS)
+        {
+            ESP_LOGE(TAG, "Setting pressure attribute failed!");
         }
 #endif
     }
