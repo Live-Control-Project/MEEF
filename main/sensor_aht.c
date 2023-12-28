@@ -19,7 +19,7 @@ static const char *TAG = "sensor_aht";
 
 static void send_sensor_data(float data, int ep, const char *cluster)
 {
-    ESP_LOGI(TAG, "%s: %.1f EP%d", cluster, data, ep);
+
     uint16_t aht_val = (uint16_t)(data * 100);
     send_data(aht_val, ep, cluster);
 }
@@ -88,20 +88,23 @@ static void sensor_aht_task(void *pvParameters)
 
     while (1)
     {
-        vTaskDelay(param_int / portTICK_PERIOD_MS);
+
         if (aht_get_data(&dev, &temperature, &humidity) == ESP_OK)
         {
             if (strcmp(cluster, "all") == 0)
             {
-                send_sensor_data(temperature, param_ep, cluster);
-                send_sensor_data(humidity, param_ep, cluster);
+                ESP_LOGI(TAG, "Humidity: %.1f%% Temp: %.1fC EP: %d: ", humidity, temperature, param_ep);
+                send_sensor_data(temperature, param_ep, "temperature");
+                send_sensor_data(humidity, param_ep, "humidity");
             }
             else if (strcmp(cluster, "temperature") == 0)
             {
+                ESP_LOGI(TAG, "%s: %.1f EP%d", "temperature", temperature, param_ep);
                 send_sensor_data(temperature, param_ep, cluster);
             }
             else if (strcmp(cluster, "humidity") == 0)
             {
+                ESP_LOGI(TAG, "%s: %.1f EP%d", "humidity", humidity, param_ep);
                 send_sensor_data(humidity, param_ep, cluster);
             }
         }
@@ -109,6 +112,7 @@ static void sensor_aht_task(void *pvParameters)
         {
             ESP_LOGE(TAG, "Could not read data from sensor AHT");
         }
+        vTaskDelay(param_int / portTICK_PERIOD_MS);
     }
 }
 
@@ -118,6 +122,7 @@ void sensor_aht(cJSON *sensor_json)
     cJSON *item = sensor_json->child;
     while (item != NULL)
     {
+
         cJSON *sensor_ = cJSON_GetObjectItemCaseSensitive(item, "sensor");
         cJSON *sensor_type_ = cJSON_GetObjectItemCaseSensitive(item, "sensor_type");
         cJSON *id_ = cJSON_GetObjectItemCaseSensitive(item, "id");
@@ -133,8 +138,9 @@ void sensor_aht(cJSON *sensor_json)
             char *cluster = cluster_->valuestring;
             int EP = ep_->valueint;
             char *sensor = sensor_->valuestring;
-            if ((strcmp(cluster, "humidity") == 0 || strcmp(cluster, "temperature") == 0) && strcmp(sensor, "AHT") == 0)
+            if ((strcmp(cluster, "all") == 0 || strcmp(cluster, "humidity") == 0 || strcmp(cluster, "temperature") == 0) && strcmp(sensor, "AHT") == 0)
             {
+
                 TaskParameters taskParams = {
                     .param_pin_SCL = pin_SCL_->valueint,
                     .param_pin_SDA = pin_SDA_->valueint,

@@ -50,7 +50,7 @@ static void sensor_dht_task(void *pvParameters)
 
     while (1)
     {
-        vTaskDelay(param_int / portTICK_PERIOD_MS);
+
         if (dht_read_float_data(SENSOR_TYPE, param_pin, &humidity, &temperature) == ESP_OK)
         {
             // ESP_LOGI(TAG, "Humidity: %.1f%% Temp: %.1fC", humidity, temperature);
@@ -60,9 +60,9 @@ static void sensor_dht_task(void *pvParameters)
             {
                 ESP_LOGI(TAG, "Humidity: %.1f%% Temp: %.1fC EP: %d: ", humidity, temperature, param_ep);
                 uint16_t dht_val = (uint16_t)(temperature * 100);
-                send_data(dht_val, param_ep, cluster);
+                send_data(dht_val, param_ep, "temperature");
                 dht_val = (uint16_t)(humidity * 100);
-                send_data(dht_val, param_ep, cluster);
+                send_data(dht_val, param_ep, "humidity");
             }
             else if (strcmp(cluster, "temperature") == 0)
             {
@@ -81,6 +81,7 @@ static void sensor_dht_task(void *pvParameters)
         {
             ESP_LOGE(TAG, "Could not read data from sensor");
         }
+        vTaskDelay(param_int / portTICK_PERIOD_MS);
     }
 }
 //----------------------------------//
@@ -104,7 +105,7 @@ void sensor_dht(cJSON *sensor_json)
             char *cluster = cluster_->valuestring;
             int EP = ep_->valueint;
             char *sensor = sensor_->valuestring;
-            if ((strcmp(cluster, "humidity") == 0 || strcmp(cluster, "temperature") == 0) && strcmp(sensor, "DHT") == 0)
+            if ((strcmp(cluster, "all") == 0 || strcmp(cluster, "humidity") == 0 || strcmp(cluster, "temperature") == 0) && strcmp(sensor, "DHT") == 0)
             {
                 TaskParameters taskParams = {
                     .param_pin = pin_->valueint,

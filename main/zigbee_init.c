@@ -353,6 +353,7 @@ esp_zb_cluster_list_t *get_existing_or_create_new_list(int index)
 }
 void createAttributes(esp_zb_cluster_list_t *esp_zb_cluster_list, char *cluster, int EP)
 {
+    ESP_LOGW(TAG, "Cluster: %s created. EP: %d", cluster, EP);
     uint16_t undefined_value;
     undefined_value = 0x8000;
 
@@ -673,7 +674,6 @@ static void esp_zb_task(void *pvParameters)
             char *cluster = cluster_->valuestring;
             int EP = ep_->valueint;
             char *sensor = sensor_->valuestring;
-            ESP_LOGW(TAG, "Cluster: %s created. EP: %d", cluster, EP);
 
             esp_zb_cluster_list_t *esp_zb_cluster_list = get_existing_or_create_new_list(EP);
             if (strcmp(sensor, "DHT") == 0 && strcmp(cluster, "all") == 0)
