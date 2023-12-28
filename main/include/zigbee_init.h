@@ -16,7 +16,7 @@
 #define OTA_UPGRADE_MAX_DATA_SIZE 64                   /* The parameter indicates the maximum data size of query block image */
 #define MANUFACTURER_NAME "meef.ru"
 #define MODEL_NAME "zigbee DIY"
-#define FIRMWARE_VERSION "ver-0.1"
+#define FIRMWARE_VERSION "ver-0.4"
 
 #define ESP_ZB_ZR_CONFIG()                                \
     {                                                     \
