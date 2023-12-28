@@ -84,7 +84,7 @@
     "pin_SCL": 19,
     "pin_SDA": 18,
     "I2C_GND": 1,
-    "I2C_ADDRESS": "0x76",
+    "I2C_ADDRESS": "0x77",
     "clasters": [
       "all",
       "temperature",
@@ -101,7 +101,7 @@
     "pin_SCL": 19,
     "pin_SDA": 18,
     "I2C_GND": 1,
-    "I2C_ADDRESS": "0x76",
+    "I2C_ADDRESS": "0x77",
     "clasters": [
       "all",
       "temperature",

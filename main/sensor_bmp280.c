@@ -18,7 +18,7 @@ static const char *TAG = "sensor_bmp280";
 
 static void send_sensor_data(float data, int ep, const char *cluster)
 {
-    ESP_LOGI(TAG, "%s: %.1f EP%d", cluster, data, ep);
+    //  ESP_LOGI(TAG, "%s: %.1f EP%d", cluster, data, ep);
     uint16_t bmp280_val = (uint16_t)(data * 100);
 
     send_data(bmp280_val, ep, cluster);
@@ -56,6 +56,8 @@ static void sensor_bmp280_task(void *pvParameters)
     memset(&dev, 0, sizeof(bmp280_t));
 
     ESP_ERROR_CHECK(bmp280_init_desc(&dev, I2C_ADDRESS_int, 0, param_pin_SDA, param_pin_SCL));
+    // BMP280_I2C_ADDRESS_0
+    // ESP_ERROR_CHECK(bmp280_init_desc(&dev, BMP280_I2C_ADDRESS_1, 0, param_pin_SDA, param_pin_SCL));
     ESP_ERROR_CHECK(bmp280_init(&dev, &params_bmp280));
 
     bool bme280p = dev.id == BME280_CHIP_ID;
@@ -64,36 +66,41 @@ static void sensor_bmp280_task(void *pvParameters)
 
     while (1)
     {
-        vTaskDelay(param_int / portTICK_PERIOD_MS);
+
         if (bmp280_read_float(&dev, &temperature, &pressure, &humidity) == ESP_OK)
         {
 
             if (strcmp(cluster, "all") == 0)
             {
-                send_sensor_data(temperature, param_ep, cluster);
-                send_sensor_data(pressure / 1333.224, param_ep, cluster);
+                ESP_LOGI(TAG, "Pressure: %.1f%mm Humidity: %.1f%% Temp: %.1fC EP: %d: ", pressure / 1333.224, humidity, temperature, param_ep);
+                send_sensor_data(temperature, param_ep, "temperature");
+                send_sensor_data(pressure / 1333.224, param_ep, "pressure");
                 if (bme280p)
                 {
-                    send_sensor_data(humidity, param_ep, cluster);
+                    send_sensor_data(humidity, param_ep, "humidity");
                 }
             }
             else if (strcmp(cluster, "temperature") == 0)
             {
                 send_sensor_data(temperature, param_ep, cluster);
+                ESP_LOGI(TAG, "%s: %.1fC EP%d", "temperature", temperature, param_ep);
             }
             else if (strcmp(cluster, "humidity") == 0 && bme280p)
             {
                 send_sensor_data(humidity, param_ep, cluster);
+                ESP_LOGI(TAG, "%s: %.1f%% EP%d", "humidity", humidity, param_ep);
             }
             else if (strcmp(cluster, "pressure") == 0)
             {
                 send_sensor_data(pressure / 1333.224, param_ep, cluster);
+                ESP_LOGI(TAG, "%s: %.1f EP%d", "Pressure", pressure / 1333.224, param_ep);
             }
         }
         else
         {
             ESP_LOGE(TAG, "Could not read data from sensor bme280 / bmp280");
         }
+        vTaskDelay(param_int / portTICK_PERIOD_MS);
     }
 }
 
@@ -119,7 +126,7 @@ void sensor_bmp280(cJSON *sensor_json)
             int EP = ep_->valueint;
             char *sensor = sensor_->valuestring;
 
-            if ((strcmp(cluster, "humidity") == 0 || strcmp(cluster, "temperature") == 0 || strcmp(cluster, "pressure") == 0) && (strcmp(sensor, "BMP280") == 0 || strcmp(sensor, "BME280") == 0))
+            if ((strcmp(cluster, "all") == 0 || strcmp(cluster, "humidity") == 0 || strcmp(cluster, "temperature") == 0 || strcmp(cluster, "pressure") == 0) && (strcmp(sensor, "BMP280") == 0 || strcmp(sensor, "BME280") == 0))
             {
                 TaskParameters taskParams = {
                     .param_pin_SCL = pin_SCL_->valueint,

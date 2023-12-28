@@ -14,8 +14,10 @@
 #include "cJSON.h"
 #include "aht.h"
 extern cJSON *sensor_json;
+static const char *TAG = "sensor_init";
 void sensor_init(void)
 {
+    //  ESP_LOGE(TAG, "OK!");
 
     gpioin(sensor_json);
     sensor_dht(sensor_json);
