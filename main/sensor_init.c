@@ -18,14 +18,13 @@ static const char *TAG = "sensor_init";
 void sensor_init(void)
 {
     //  ESP_LOGE(TAG, "OK!");
-
-    gpioin(sensor_json);
-    sensor_dht(sensor_json);
-    sensor_example(sensor_json);
     sensor_gpioOUT(sensor_json);
+    gpioin(sensor_json);
+    sensor_example(sensor_json);
+    sensor_dht(sensor_json);
+    sensor_ds18x20(sensor_json);
 
     ESP_ERROR_CHECK(i2cdev_init());
     sensor_aht(sensor_json);
     sensor_bmp280(sensor_json);
-    sensor_ds18x20(sensor_json);
 }
