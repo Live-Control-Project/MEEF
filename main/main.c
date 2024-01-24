@@ -1,34 +1,113 @@
-#include <stdio.h>
-#include "string.h"
-#include "nvs_flash.h"
-#include "esp_log.h"
-#include "freertos/FreeRTOS.h"
-#include "freertos/task.h"
-#include "zboss_api.h"
-#include "zigbee_init.h"
-#include "esp_mac.h"
-#include "zcl/zb_zcl_reporting.h"
-#include "sensor_init.h"
+#include "common.h"
+#include "settings.h"
 #include "esp_spiffs.h"
-#include <string.h>
-#include "cJSON.h"
-#define ESP_ZIGBEE_ENABLED true
+#include "effects/effect.h"
+#include "effects/surface.h"
+#include "effects/input.h"
+#include "wifi/webserver.h"
+#include "wifi/wifi.h"
+#include "utils/bus.h"
+#include "utils/spiffs.h"
+#include "zigbee/zigbee_init.h"
+#include "modules/sensors/sensor_init.h"
 
 cJSON *sensor_json = NULL;
 cJSON *config_json = NULL;
-static const char *TAG = "MAIN";
-void app_main(void)
+
+inline static void process_button_event(event_t *e)
 {
+    size_t button_id = *((size_t *)e->data);
+    ESP_LOGD(TAG, "Got button %d event %d", button_id, e->type);
+    if (button_id == INPUT_BTN_RESET)
+    {
+        if (e->type == EVENT_BUTTON_PRESSED_LONG)
+        {
+            ESP_ERROR_CHECK(effects_reset());
+            ESP_ERROR_CHECK(sys_settings_reset_nvs());
+            ESP_ERROR_CHECK(vol_settings_reset());
+            esp_restart();
+        }
+        return;
+    }
 
-    esp_vfs_spiffs_conf_t config = {
-        .base_path = "/spiffs_data",
-        .partition_label = NULL,
-        .max_files = 5,
-        .format_if_mount_failed = true,
-    };
-    esp_vfs_spiffs_register(&config);
+    bool playing = surface_is_playing();
+    if (button_id == INPUT_BTN_MAIN)
+    {
+        switch (e->type)
+        {
+        case EVENT_BUTTON_CLICKED:
+            if (playing)
+                surface_next_effect();
+            break;
+        case EVENT_BUTTON_PRESSED_LONG:
+            if (playing)
+                surface_stop();
+            else
+                surface_play();
+            break;
+        default:
+            break;
+        }
+        return;
+    }
 
-    FILE *file = fopen("/spiffs_data/settings.json", "r");
+    if (!playing)
+        return;
+
+    // up/down
+    if (e->type == EVENT_BUTTON_CLICKED &&
+        (button_id == INPUT_BTN_UP || button_id == INPUT_BTN_DOWN))
+    {
+        surface_increment_brightness(button_id == INPUT_BTN_UP ? 5 : -5);
+    }
+}
+
+static void main_loop(void *arg)
+{
+    event_t e;
+    esp_err_t err;
+
+    while (1)
+    {
+        if (bus_receive_event(&e, 1000) != ESP_OK)
+            continue;
+
+        switch (e.type)
+        {
+        case EVENT_BUTTON_CLICKED:
+        case EVENT_BUTTON_PRESSED_LONG:
+            process_button_event(&e);
+            break;
+        case EVENT_BUTTON_PRESSED:
+            ESP_LOGI(TAG, "Button event %d", e.type);
+            if (e.type == 2)
+            {
+                writeJSONtoFile("config.json", &sys_settings);
+            }
+            break;
+        case EVENT_NETWORK_UP:
+            ESP_LOGI(TAG, "Network is up, restarting HTTPD...");
+
+            err = webserver_restart();
+            if (err != ESP_OK)
+                ESP_LOGW(TAG, "Error starting HTTPD: %d (%s)", err, esp_err_to_name(err));
+
+            // zigbee_init();
+
+            break;
+
+        case EVENT_NETWORK_DOWN:
+            ESP_LOGI(TAG, "Network is down");
+            break;
+
+        default:
+            ESP_LOGI(TAG, "Unprocessed event %d", e.type);
+        }
+    }
+}
+void load_element_json(const char base_path)
+{
+    FILE *file = fopen("/spiffs_storage/settings.json", "r");
     if (file == NULL)
     {
         ESP_LOGE(TAG, "File does not exist!");
@@ -63,11 +142,8 @@ void app_main(void)
             {
                 ESP_LOGE(TAG, "Error before: %s", error_ptr);
             }
-            //            cJSON_Delete(sensor_json);
-            //            esp_vfs_spiffs_unregister(NULL);
-            //            return;
         }
-        FILE *file = fopen("/spiffs_data/config.json", "r");
+        FILE *file = fopen("/spiffs_storage/config.json", "r");
         if (file == NULL)
         {
             ESP_LOGE(TAG, "File does not exist!");
@@ -131,9 +207,54 @@ void app_main(void)
 
         free(json_buffer); // Free the allocated buffer
     }
+}
 
-    esp_vfs_spiffs_unregister(NULL);
+void app_main()
+{
+    ESP_LOGI(TAG, "Starting " APP_NAME);
+    ESP_LOGI(TAG, "Free heap: %lu bytes", esp_get_free_heap_size());
 
-    zigbee_init();
-    sensor_init();
+    // Initialize NVS
+    ESP_ERROR_CHECK(settings_init());
+    // Load system settings from NVS
+    // ESP_ERROR_CHECK(sys_settings_reset_nvs());
+    ESP_ERROR_CHECK(sys_settings_load_nvs());
+    // Load volatile settings
+    ESP_ERROR_CHECK(vol_settings_load());
+    // Load effect parameters
+    ESP_ERROR_CHECK(effects_init());
+    // Init surface
+    ESP_ERROR_CHECK(surface_init());
+
+    // Initialize bus
+    ESP_ERROR_CHECK(bus_init());
+
+    // Initialize input
+    ESP_ERROR_CHECK(input_init());
+
+    /* Initialize file storage */
+    const char *base_path = "/spiffs_storage";
+    ESP_ERROR_CHECK(mount_storage(base_path));
+
+    // читаем конфигурацию из storage
+    load_element_json(base_path);
+
+    // Инициализация датчиков \ сенсоров
+    // sensor_init();
+
+    // Start WIFI
+    esp_err_t res = wifi_init();
+    if (res != ESP_OK)
+        ESP_LOGW(TAG, "Could not start WiFi: %d (%s)", res, esp_err_to_name(res));
+
+    // Инициализация zigbee в модуле wifi после старта mqtt
+    // zigbee_init();
+
+    ESP_LOGI(TAG, "[APP] Free memory: %" PRIu32 " Kb", esp_get_free_heap_size() / 1024);
+    // Create main task
+    if (xTaskCreate(main_loop, APP_NAME, MAIN_TASK_STACK_SIZE, NULL, MAIN_TASK_PRIORITY, NULL) != pdPASS)
+    {
+        ESP_LOGE(TAG, "Could not create main task");
+        ESP_ERROR_CHECK(ESP_FAIL);
+    }
 }

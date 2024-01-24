@@ -1,0 +1,44 @@
+[
+    {
+        "sensor": "rele",
+        "id": "rele1",
+        "pin": 12,
+        "saveState": 1,
+        "EP": 1,
+        "claster": "on_off"
+    },
+    {
+        "sensor": "example",
+        "id": "rele1",
+        "int": 15,
+        "pin": 12,
+        "saveState": 1,
+        "sensor_type": "sensor_example",
+        "EP": 1,
+        "claster": "sensor_example"
+    },
+    {
+        "sensor": "AHT",
+        "id": "aht98",
+        "int": 15,
+        "pin_SCL": 19,
+        "pin_SDA": 18,
+        "I2C_GND": 1,
+        "I2C_ADDRESS": "36",
+        "sensor_type": "AHT20",
+        "EP": 1,
+        "claster": "temperature"
+    },
+    {
+        "sensor": "AHT",
+        "id": "aht32",
+        "int": 20,
+        "pin_SCL": 19,
+        "pin_SDA": 18,
+        "I2C_GND": 1,
+        "I2C_ADDRESS": "36",
+        "sensor_type": "AHT20",
+        "EP": 1,
+        "claster": "humidity"
+    }
+]

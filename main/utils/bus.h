@@ -1,0 +1,28 @@
+#ifndef MEEF_BUS_H_
+#define MEEF_BUS_H_
+
+#include "common.h"
+
+typedef enum {
+    EVENT_NETWORK_UP = 0,
+    EVENT_NETWORK_DOWN,
+    EVENT_BUTTON_PRESSED,
+    EVENT_BUTTON_PRESSED_LONG,
+    EVENT_BUTTON_RELEASED,
+    EVENT_BUTTON_CLICKED,
+    EVENT_TIMER
+} event_type_t;
+
+typedef struct
+{
+    event_type_t type;
+    uint8_t data[BUS_EVENT_DATA_SIZE];
+} event_t;
+
+esp_err_t bus_init();
+
+esp_err_t bus_send_event(event_type_t type, void *data, size_t size);
+
+esp_err_t bus_receive_event(event_t *e, size_t timeout_ms);
+
+#endif /* MEEF_BUS_H_ */

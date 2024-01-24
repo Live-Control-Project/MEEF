@@ -1,27 +1,68 @@
-.cache
-compile_commands.json
+# Prerequisites
+*.d
+
+# Object files
+*.o
+*.ko
+*.obj
+*.elf
+
+# Linker output
+*.ilk
+*.map
+*.exp
+
+# Precompiled Headers
+*.gch
+*.pch
+
+# Libraries
+*.lib
+*.a
+*.la
+*.lo
+
+# Shared objects (inc. Windows DLLs)
+*.dll
+*.so
+*.so.*
+*.dylib
+
+# Executables
+*.exe
+*.out
+*.app
+*.i*86
+*.x86_64
+*.hex
+
+# Debug files
+*.dSYM/
+*.su
+*.idb
+*.pdb
+
+# Kernel Module Compile Results
+*.mod*
+*.cmd
+.tmp_versions/
+modules.order
+Module.symvers
+Mkfile.old
+dkms.conf
 *.swp
 
-# ESP-IDF default build directory name
-build
 build/
-build_*/
 sdkconfig.old
-sdkconfig.defaults
-dependencies.lock
-managed_components
-__pycache__/
-out/
-_build/
-
-pytest_embedded_log/
-# VS Code Settings
-#.vscode/
-
-# clangd set
-.clangd
-compile_commands.json
-.clang-format
-
-# pre-commit
-.pre-commit-config.yaml
+sdkconfig
+/.cproject
+/.project
+/.settings/
+/.pydevproject
+/__garbage__
+/sdkconfig.unclerus
+/.vscode/
+/.idea/
+/cmake-build-debug/
+/libs
+/managed_components
