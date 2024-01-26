@@ -58,13 +58,53 @@ static esp_err_t set_content_type_from_file(httpd_req_t *req, const char *filena
     {
         return httpd_resp_set_type(req, "text/html");
     }
+    else if (IS_FILE_EXT(filename, ".htm"))
+    {
+        return httpd_resp_set_type(req, "text/html");
+    }
+    else if (IS_FILE_EXT(filename, ".css"))
+    {
+        return httpd_resp_set_type(req, "text/css");
+    }
+    else if (IS_FILE_EXT(filename, ".js"))
+    {
+        return httpd_resp_set_type(req, "application/javascript");
+    }
+    else if (IS_FILE_EXT(filename, ".png"))
+    {
+        return httpd_resp_set_type(req, "image/png");
+    }
+    else if (IS_FILE_EXT(filename, ".gif"))
+    {
+        return httpd_resp_set_type(req, "image/gif");
+    }
     else if (IS_FILE_EXT(filename, ".jpeg"))
     {
         return httpd_resp_set_type(req, "image/jpeg");
     }
+    else if (IS_FILE_EXT(filename, ".jpg"))
+    {
+        return httpd_resp_set_type(req, "image/jpg");
+    }
     else if (IS_FILE_EXT(filename, ".ico"))
     {
         return httpd_resp_set_type(req, "image/x-icon");
+    }
+    else if (IS_FILE_EXT(filename, ".xml"))
+    {
+        return httpd_resp_set_type(req, "text/xml");
+    }
+    else if (IS_FILE_EXT(filename, ".zip"))
+    {
+        return httpd_resp_set_type(req, "application/x-zip");
+    }
+    else if (IS_FILE_EXT(filename, ".gz"))
+    {
+        // return httpd_resp_set_type(req, "application/x-gzip");
+        //  return httpd_resp_set_type(req, "text/html");
+        // return httpd_resp_set_type(req, "text/html\r\nContent-Encoding: gzip");
+        return httpd_resp_set_type(req, "text/html/css");
+        return httpd_resp_set_hdr(req, "Content-Encoding", "gzip");
     }
 
     return httpd_resp_set_type(req, "text/plain");
@@ -88,7 +128,6 @@ static const char *get_path_from_uri(char *dest, const char *base_path, const ch
 
     if (base_pathlen + pathlen + 1 > destsize)
     {
-
         return NULL;
     }
 
@@ -542,7 +581,9 @@ exit:
 static const httpd_uri_t route_post_settings_wifi = {
     .uri = "/api/settings/wifi",
     .method = HTTP_POST,
-    .handler = post_settings_wifi};
+    .handler = post_settings_wifi,
+    // .user_ctx = server_data // Pass server data as context
+};
 
 ////////////////////////////////////////////////////////////////////////////////
 
@@ -939,7 +980,6 @@ static const httpd_uri_t route_post_lamp_effect = {
 
 ////////////////////////////////////////////////////////////////////////////////
 
-//---------------https://t.me/lmahmutov--------------//
 ////////////////////////////////////////////////////////////////////////////////
 static esp_err_t download_get_handler(httpd_req_t *req)
 {
@@ -966,10 +1006,15 @@ static esp_err_t download_get_handler(httpd_req_t *req)
 
     if (stat(filepath, &file_stat) == -1)
     {
-        ESP_LOGE(TAG, "Failed to stat file : %s", filepath);
-        /* Respond with 404 Not Found */
-        httpd_resp_send_err(req, HTTPD_404_NOT_FOUND, "File does not exist");
-        return ESP_FAIL;
+        // ESP_LOGE(TAG, "Failed to stat file : %s Try .gz", filepath);
+        strcat(filepath, ".gz");
+        // ESP_LOGI(TAG, "file .gz : %s", filepath);
+        if (stat(filepath, &file_stat) == -1)
+        {
+            /* Respond with 404 Not Found */
+            httpd_resp_send_err(req, HTTPD_404_NOT_FOUND, "File does not exist");
+            return ESP_FAIL;
+        }
     }
 
     fd = fopen(filepath, "r");
@@ -981,7 +1026,7 @@ static esp_err_t download_get_handler(httpd_req_t *req)
         return ESP_FAIL;
     }
 
-    // ESP_LOGI(TAG, "Sending file : %s (%ld bytes)...", filename, file_stat.st_size);
+    ESP_LOGI(TAG, "Sending file : %s (%ld bytes)...", filename, file_stat.st_size);
     set_content_type_from_file(req, filename);
 
     /* Retrieve the pointer to scratch buffer for temporary storage */
