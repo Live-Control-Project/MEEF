@@ -1,9 +1,16 @@
+#include <stdio.h>
+#include "freertos/FreeRTOS.h"
+#include "freertos/task.h"
+#include "esp_system.h"
+
 #include "settings.h"
 #include <string.h>
 #include <nvs_flash.h>
 #include <nvs.h>
 #include <led_strip.h>
 #include "effects/surface.h"
+#include "cJSON.h"
+#include "esp_spiffs.h"
 
 static const char *STORAGE_SYSTEM_NAME = "system";
 static const char *STORAGE_VOLATILE_NAME = "volatile";
@@ -15,8 +22,12 @@ system_settings_t sys_settings = {0};
 volatile_settings_t vol_settings = {0};
 
 static system_settings_t sys_defaults = {
+    .device = {.devicename = "zigbee DIY"},
     .wifi = {
         .mode = DEFAULT_WIFI_MODE,
+        .wifi_present = true,
+        .wifi_enabled = true,
+        .wifi_conected = false,
         .ip = {
             .dhcp = DEFAULT_WIFI_DHCP,
             .ip = CONFIG_EL_WIFI_IP,
@@ -30,6 +41,24 @@ static system_settings_t sys_defaults = {
             .password = CONFIG_EL_WIFI_STA_PASSWD,
             .threshold.authmode = WIFI_AUTH_WPA2_PSK,
         },
+    },
+    .zigbee = {
+        .zigbee_present = true,
+        .zigbee_enabled = false,
+        .zigbee_conected = false,
+        .modelname = "zigbee DIY",
+        .manufactuer = "MEEF",
+        .manufactuer_id = "",
+    },
+    .mqtt = {
+        .mqtt_enabled = false,
+        .mqtt_conected = false,
+        .server = "",
+        .port = 1883,
+        .prefx = "",
+        .user = "",
+        .password = "",
+        .path = "",
     },
     .leds = {
         .block_width = CONFIG_EL_MATRIX_WIDTH,
@@ -222,15 +251,78 @@ static esp_err_t storage_load_spiffs(const char *storage_name, void *target, siz
     return ESP_OK;
 }
 // Сохраняем настройки в spiffs
+
+// Запись в файл
+static int writeFile(char *fname, char *mode, char *buf)
+{
+    FILE *fd = fopen(fname, mode);
+    if (fd == NULL)
+    {
+        ESP_LOGE("[write]", "fopen failed");
+        return -1;
+    }
+    int len = strlen(buf);
+    int res = fwrite(buf, 1, len, fd);
+    if (res != len)
+    {
+        ESP_LOGE("[write]", "fwrite failed: %d <> %d ", res, len);
+        res = fclose(fd);
+        if (res)
+        {
+            ESP_LOGE("[write]", "fclose failed: %d", res);
+            return -2;
+        }
+        return -3;
+    }
+    res = fclose(fd);
+    if (res)
+    {
+        ESP_LOGE("[write]", "fclose failed: %d", res);
+        return -4;
+    }
+    return 0;
+}
 static esp_err_t storage_save_spiffs(const char *storage_name, const void *source, size_t size)
 {
     ESP_LOGD(TAG, "Saving settings to '%s'...", storage_name);
+    // Преобразование структуры в JSON
+    cJSON *root = cJSON_CreateObject();
+    cJSON *wifi = cJSON_AddObjectToObject(root, "wifi");
+    cJSON *ip = cJSON_AddObjectToObject(wifi, "ip");
+    cJSON_AddBoolToObject(ip, "dhcp", sys_settings.wifi.ip.dhcp);
+    cJSON_AddStringToObject(ip, "ip", sys_settings.wifi.ip.ip);
+    cJSON_AddStringToObject(ip, "netmask", sys_settings.wifi.ip.netmask);
+    cJSON_AddStringToObject(ip, "gateway", sys_settings.wifi.ip.gateway);
+    cJSON_AddStringToObject(ip, "dns", sys_settings.wifi.ip.dns);
+    cJSON_AddNumberToObject(wifi, "mode", sys_settings.wifi.mode);
 
-    //    nvs_handle_t nvs;
-    //    CHECK_LOGE(nvs_open(storage_name, NVS_READWRITE, &nvs),"Could not open NVS to write");
-    //    CHECK_LOGE(nvs_set_u32(nvs, OPT_MAGIC, SETTINGS_MAGIC),"Error writing NVS magic");
-    //    CHECK_LOGE(nvs_set_blob(nvs, OPT_SETTINGS, source, size),"Error writing NVS settings");
-    //    nvs_close(nvs);
+    cJSON *ap = cJSON_AddObjectToObject(wifi, "ap");
+    cJSON_AddStringToObject(ap, "ssid", (char *)sys_settings.wifi.ap.ssid);
+    cJSON_AddNumberToObject(ap, "channel", sys_settings.wifi.ap.channel);
+    cJSON_AddStringToObject(ap, "password", (char *)sys_settings.wifi.ap.password);
+    cJSON_AddNumberToObject(ap, "max_connection", sys_settings.wifi.ap.max_connection);
+    cJSON_AddNumberToObject(ap, "authmode", sys_settings.wifi.ap.authmode);
+
+    cJSON *sta = cJSON_AddObjectToObject(wifi, "sta");
+    cJSON_AddStringToObject(sta, "ssid", (char *)sys_settings.wifi.sta.ssid);
+    cJSON_AddStringToObject(sta, "password", (char *)sys_settings.wifi.sta.password);
+    cJSON *threshold = cJSON_AddObjectToObject(sta, "threshold");
+    cJSON_AddNumberToObject(threshold, "authmode", sys_settings.wifi.sta.threshold.authmode);
+
+    cJSON *leds = cJSON_AddObjectToObject(root, "leds");
+    cJSON_AddNumberToObject(leds, "block_width", sys_settings.leds.block_width);
+    cJSON_AddNumberToObject(leds, "block_height", sys_settings.leds.block_height);
+    cJSON_AddNumberToObject(leds, "h_blocks", sys_settings.leds.h_blocks);
+    cJSON_AddNumberToObject(leds, "v_blocks", sys_settings.leds.v_blocks);
+    cJSON_AddNumberToObject(leds, "type", sys_settings.leds.type);
+    cJSON_AddNumberToObject(leds, "rotation", sys_settings.leds.rotation);
+    cJSON_AddNumberToObject(leds, "current_limit", sys_settings.leds.current_limit);
+
+    char *json_str = cJSON_Print(root);
+    const char *base_path = "/spiffs_storage/config.json";
+    writeFile(base_path, "w", json_str);
+    free(json_str);
+    cJSON_Delete(root);
 
     ESP_LOGD(TAG, "Settings saved to '%s'", storage_name);
     return ESP_OK;

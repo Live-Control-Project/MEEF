@@ -100,9 +100,10 @@ static esp_err_t set_content_type_from_file(httpd_req_t *req, const char *filena
     }
     else if (IS_FILE_EXT(filename, ".gz"))
     {
-        // return httpd_resp_set_type(req, "application/x-gzip");
-        //  return httpd_resp_set_type(req, "text/html");
-        // return httpd_resp_set_type(req, "text/html\r\nContent-Encoding: gzip");
+        // ToDo: починить отправку сжатых .gz файлов
+        //  return httpd_resp_set_type(req, "application/x-gzip");
+        //   return httpd_resp_set_type(req, "text/html");
+        //  return httpd_resp_set_type(req, "text/html\r\nContent-Encoding: gzip");
         return httpd_resp_set_type(req, "text/html/css");
         return httpd_resp_set_hdr(req, "Content-Encoding", "gzip");
     }
@@ -361,26 +362,50 @@ static const httpd_uri_t route_get_settings_reset = {
 static esp_err_t get_settings_wifi(httpd_req_t *req)
 {
     cJSON *res = cJSON_CreateObject();
-    cJSON_AddNumberToObject(res, "mode", sys_settings.wifi.mode);
-
+    cJSON *device = cJSON_CreateObject();
+    cJSON_AddItemToObject(res, "device", device);
+    cJSON_AddStringToObject(device, "devicename", (char *)sys_settings.device.devicename);
+    cJSON *wifi = cJSON_CreateObject();
+    cJSON_AddItemToObject(res, "wifi", wifi);
+    cJSON_AddNumberToObject(wifi, "mode", sys_settings.wifi.mode);
+    cJSON_AddBoolToObject(wifi, "wifi_present", sys_settings.wifi.wifi_present);
+    cJSON_AddBoolToObject(wifi, "wifi_enabled", sys_settings.wifi.wifi_enabled);
     cJSON *ip = cJSON_CreateObject();
-    cJSON_AddItemToObject(res, "ip", ip);
+    cJSON_AddItemToObject(wifi, "ip", ip);
     cJSON_AddBoolToObject(ip, "dhcp", sys_settings.wifi.ip.dhcp);
     cJSON_AddStringToObject(ip, "ip", sys_settings.wifi.ip.ip);
+    cJSON_AddStringToObject(ip, "staip", sys_settings.wifi.ip.staip);
     cJSON_AddStringToObject(ip, "netmask", sys_settings.wifi.ip.netmask);
     cJSON_AddStringToObject(ip, "gateway", sys_settings.wifi.ip.gateway);
     cJSON_AddStringToObject(ip, "dns", sys_settings.wifi.ip.dns);
-
     cJSON *ap = cJSON_CreateObject();
-    cJSON_AddItemToObject(res, "ap", ap);
+    cJSON_AddItemToObject(wifi, "ap", ap);
     cJSON_AddStringToObject(ap, "ssid", (char *)sys_settings.wifi.ap.ssid);
     cJSON_AddNumberToObject(ap, "channel", sys_settings.wifi.ap.channel);
     cJSON_AddStringToObject(ap, "password", (char *)sys_settings.wifi.ap.password);
-
     cJSON *sta = cJSON_CreateObject();
-    cJSON_AddItemToObject(res, "sta", sta);
+    cJSON_AddItemToObject(wifi, "sta", sta);
     cJSON_AddStringToObject(sta, "ssid", (char *)sys_settings.wifi.sta.ssid);
     cJSON_AddStringToObject(sta, "password", (char *)sys_settings.wifi.sta.password);
+
+    cJSON *zigbee = cJSON_CreateObject();
+    cJSON_AddItemToObject(res, "zigbee", zigbee);
+    cJSON_AddBoolToObject(zigbee, "zigbee_present", sys_settings.zigbee.zigbee_present);
+    cJSON_AddBoolToObject(zigbee, "zigbee_enabled", sys_settings.zigbee.zigbee_enabled);
+    cJSON_AddStringToObject(zigbee, "modelname", (char *)sys_settings.zigbee.modelname);
+    cJSON_AddStringToObject(zigbee, "manufactuer", (char *)sys_settings.zigbee.manufactuer);
+    cJSON_AddStringToObject(zigbee, "manufactuer_id", (char *)sys_settings.zigbee.manufactuer_id);
+
+    cJSON *mqtt = cJSON_CreateObject();
+    cJSON_AddItemToObject(res, "mqtt", mqtt);
+    cJSON_AddBoolToObject(mqtt, "mqtt_enabled", sys_settings.mqtt.mqtt_enabled);
+    cJSON_AddBoolToObject(mqtt, "mqtt_conected", sys_settings.mqtt.mqtt_conected);
+    cJSON_AddStringToObject(mqtt, "server", (char *)sys_settings.mqtt.server);
+    cJSON_AddNumberToObject(mqtt, "port", sys_settings.mqtt.port);
+    cJSON_AddStringToObject(mqtt, "prefx", (char *)sys_settings.mqtt.prefx);
+    cJSON_AddStringToObject(mqtt, "user", (char *)sys_settings.mqtt.user);
+    cJSON_AddStringToObject(mqtt, "password", (char *)sys_settings.mqtt.password);
+    cJSON_AddStringToObject(mqtt, "path", (char *)sys_settings.mqtt.path);
 
     return respond_json(req, res);
 }
@@ -401,7 +426,25 @@ static esp_err_t post_settings_wifi(httpd_req_t *req)
     if (err != ESP_OK)
         goto exit;
 
-    cJSON *mode_item = cJSON_GetObjectItem(json, "mode");
+    cJSON *device = cJSON_GetObjectItem(json, "device");
+    cJSON *devicename_item = cJSON_GetObjectItem(device, "devicename");
+    if (!cJSON_IsString(devicename_item))
+    {
+        msg = "Item `devicename_item` not found or invalid";
+        err = ESP_ERR_INVALID_ARG;
+        goto exit;
+    }
+    const char *devicename = cJSON_GetStringValue(devicename_item);
+    size_t len = strlen(devicename);
+    if (len >= sizeof(sys_settings.device.devicename))
+    {
+        msg = "Invalid devicename";
+        err = ESP_ERR_INVALID_ARG;
+        goto exit;
+    }
+
+    cJSON *wifi = cJSON_GetObjectItem(json, "wifi");
+    cJSON *mode_item = cJSON_GetObjectItem(wifi, "mode");
     if (!cJSON_IsNumber(mode_item))
     {
         msg = "Item `mode` not found or invalid";
@@ -409,7 +452,22 @@ static esp_err_t post_settings_wifi(httpd_req_t *req)
         goto exit;
     }
 
-    cJSON *ip = cJSON_GetObjectItem(json, "ip");
+    cJSON *wifi_present_item = cJSON_GetObjectItem(wifi, "wifi_present");
+    if (!cJSON_IsBool(wifi_present_item))
+    {
+        msg = "Item `wifi_present` not found or invalid";
+        err = ESP_ERR_INVALID_ARG;
+        goto exit;
+    }
+    cJSON *wifi_enabled_item = cJSON_GetObjectItem(wifi, "wifi_enabled");
+    if (!cJSON_IsBool(wifi_enabled_item))
+    {
+        msg = "Item `wifi_enabled` not found or invalid";
+        err = ESP_ERR_INVALID_ARG;
+        goto exit;
+    }
+
+    cJSON *ip = cJSON_GetObjectItem(wifi, "ip");
     if (!ip)
     {
         msg = "Object `ip` not found or invalid";
@@ -452,7 +510,7 @@ static esp_err_t post_settings_wifi(httpd_req_t *req)
         goto exit;
     }
 
-    cJSON *ap = cJSON_GetObjectItem(json, "ap");
+    cJSON *ap = cJSON_GetObjectItem(wifi, "ap");
     if (!ap)
     {
         msg = "Object `ap` not found or invalid";
@@ -481,7 +539,7 @@ static esp_err_t post_settings_wifi(httpd_req_t *req)
         goto exit;
     }
 
-    cJSON *sta = cJSON_GetObjectItem(json, "sta");
+    cJSON *sta = cJSON_GetObjectItem(wifi, "sta");
     if (!sta)
     {
         msg = "Object `sta` not found or invalid";
@@ -511,8 +569,8 @@ static esp_err_t post_settings_wifi(httpd_req_t *req)
         goto exit;
     }
     const char *ap_ssid = cJSON_GetStringValue(ap_ssid_item);
-    size_t len = strlen(ap_ssid);
-    if (!len || len >= sizeof(sys_settings.wifi.ap.ssid))
+    len = strlen(ap_ssid);
+    if (len >= sizeof(sys_settings.wifi.ap.ssid))
     {
         msg = "Invalid ap.ssid";
         err = ESP_ERR_INVALID_ARG;
@@ -535,7 +593,7 @@ static esp_err_t post_settings_wifi(httpd_req_t *req)
     }
     const char *sta_ssid = cJSON_GetStringValue(sta_ssid_item);
     len = strlen(sta_ssid);
-    if (!len || len >= sizeof(sys_settings.wifi.sta.ssid))
+    if (len >= sizeof(sys_settings.wifi.sta.ssid))
     {
         msg = "Invalid sta.ssid";
         err = ESP_ERR_INVALID_ARG;
@@ -550,7 +608,170 @@ static esp_err_t post_settings_wifi(httpd_req_t *req)
         goto exit;
     }
 
+    cJSON *zigbee = cJSON_GetObjectItem(json, "zigbee");
+    cJSON *zigbee_present_item = cJSON_GetObjectItem(zigbee, "zigbee_present");
+    if (!cJSON_IsBool(zigbee_present_item))
+    {
+        msg = "Item `zigbee_present` not found or invalid";
+        err = ESP_ERR_INVALID_ARG;
+        goto exit;
+    }
+    cJSON *zigbee_enabled_item = cJSON_GetObjectItem(zigbee, "zigbee_enabled");
+    if (!cJSON_IsBool(zigbee_enabled_item))
+    {
+        msg = "Item `zigbee_enabled` not found or invalid";
+        err = ESP_ERR_INVALID_ARG;
+        goto exit;
+    }
+    cJSON *modelname_item = cJSON_GetObjectItem(zigbee, "modelname");
+    if (!cJSON_IsString(modelname_item))
+    {
+        msg = "Item `modelname` not found or invalid";
+        err = ESP_ERR_INVALID_ARG;
+        goto exit;
+    }
+    const char *modelname = cJSON_GetStringValue(modelname_item);
+    len = strlen(modelname);
+    if (len >= sizeof(sys_settings.zigbee.modelname))
+    {
+        msg = "Invalid modelname";
+        err = ESP_ERR_INVALID_ARG;
+        goto exit;
+    }
+    cJSON *manufactuer_item = cJSON_GetObjectItem(zigbee, "manufactuer");
+    if (!cJSON_IsString(manufactuer_item))
+    {
+        msg = "Item `manufactuer` not found or invalid";
+        err = ESP_ERR_INVALID_ARG;
+        goto exit;
+    }
+    const char *manufactuer = cJSON_GetStringValue(manufactuer_item);
+    len = strlen(manufactuer);
+    if (len >= sizeof(sys_settings.zigbee.manufactuer))
+    {
+        msg = "Invalid manufactuer";
+        err = ESP_ERR_INVALID_ARG;
+        goto exit;
+    }
+    cJSON *manufactuer_id_item = cJSON_GetObjectItem(zigbee, "manufactuer_id");
+    if (!cJSON_IsString(manufactuer_id_item))
+    {
+        msg = "Item `manufactuer_id` not found or invalid";
+        err = ESP_ERR_INVALID_ARG;
+        goto exit;
+    }
+    const char *manufactuer_id = cJSON_GetStringValue(manufactuer_id_item);
+    len = strlen(manufactuer_id);
+    if (len >= sizeof(sys_settings.zigbee.manufactuer_id))
+    {
+        msg = "Invalid manufactuer_id";
+        err = ESP_ERR_INVALID_ARG;
+        goto exit;
+    }
+    cJSON *mqtt = cJSON_GetObjectItem(json, "mqtt");
+    cJSON *mqtt_enabled_item = cJSON_GetObjectItem(mqtt, "mqtt_enabled");
+    if (!cJSON_IsBool(mqtt_enabled_item))
+    {
+        msg = "Item `mqtt_enabled` not found or invalid";
+        err = ESP_ERR_INVALID_ARG;
+        goto exit;
+    }
+    cJSON *mqtt_conected_item = cJSON_GetObjectItem(mqtt, "mqtt_conected");
+    if (!cJSON_IsBool(mqtt_conected_item))
+    {
+        msg = "Item `mqtt_conected` not found or invalid";
+        err = ESP_ERR_INVALID_ARG;
+        goto exit;
+    }
+    cJSON *server_item = cJSON_GetObjectItem(mqtt, "server");
+    if (!cJSON_IsString(server_item))
+    {
+        msg = "Item `server` not found or invalid";
+        err = ESP_ERR_INVALID_ARG;
+        goto exit;
+    }
+    const char *mqtt_server = cJSON_GetStringValue(server_item);
+    len = strlen(mqtt_server);
+    if (len >= sizeof(sys_settings.mqtt.server))
+    {
+        msg = "Invalid mqtt_server";
+        err = ESP_ERR_INVALID_ARG;
+        goto exit;
+    }
+    cJSON *port_item = cJSON_GetObjectItem(mqtt, "port");
+    if (!cJSON_IsNumber(port_item))
+    {
+        msg = "Item `port` not found or invalid";
+        err = ESP_ERR_INVALID_ARG;
+        goto exit;
+    }
+    cJSON *prefx_item = cJSON_GetObjectItem(mqtt, "prefx");
+    if (!cJSON_IsString(prefx_item))
+    {
+        msg = "Item `prefx` not found or invalid";
+        err = ESP_ERR_INVALID_ARG;
+        goto exit;
+    }
+    const char *mqtt_prefx = cJSON_GetStringValue(prefx_item);
+    len = strlen(mqtt_prefx);
+    if (len >= sizeof(sys_settings.mqtt.prefx))
+    {
+        msg = "Invalid mqtt_prefx";
+        err = ESP_ERR_INVALID_ARG;
+        goto exit;
+    }
+    cJSON *user_item = cJSON_GetObjectItem(mqtt, "user");
+    if (!cJSON_IsString(user_item))
+    {
+        msg = "Item `user` not found or invalid";
+        err = ESP_ERR_INVALID_ARG;
+        goto exit;
+    }
+    const char *mqtt_user = cJSON_GetStringValue(user_item);
+    len = strlen(mqtt_user);
+    if (len >= sizeof(sys_settings.mqtt.user))
+    {
+        msg = "Invalid mqtt_user";
+        err = ESP_ERR_INVALID_ARG;
+        goto exit;
+    }
+    cJSON *password_item = cJSON_GetObjectItem(mqtt, "password");
+    if (!cJSON_IsString(password_item))
+    {
+        msg = "Item `password` not found or invalid";
+        err = ESP_ERR_INVALID_ARG;
+        goto exit;
+    }
+    const char *mqtt_password = cJSON_GetStringValue(password_item);
+    len = strlen(mqtt_password);
+    if (len >= sizeof(sys_settings.mqtt.password))
+    {
+        msg = "Invalid mqtt_password";
+        err = ESP_ERR_INVALID_ARG;
+        goto exit;
+    }
+    cJSON *path_item = cJSON_GetObjectItem(mqtt, "path");
+    if (!cJSON_IsString(path_item))
+    {
+        msg = "Item `path` not found or invalid";
+        err = ESP_ERR_INVALID_ARG;
+        goto exit;
+    }
+    const char *mqtt_path = cJSON_GetStringValue(path_item);
+    len = strlen(mqtt_path);
+    if (len >= sizeof(sys_settings.mqtt.path))
+    {
+        msg = "Invalid mqtt_path";
+        err = ESP_ERR_INVALID_ARG;
+        goto exit;
+    }
+
+    memset(sys_settings.device.devicename, 0, sizeof(sys_settings.device.devicename));
+    strncpy((char *)sys_settings.device.devicename, devicename, sizeof(sys_settings.device.devicename) - 1);
+
     sys_settings.wifi.mode = mode;
+    // sys_settings.wifi.wifi_present = cJSON_IsTrue(wifi_present_item);
+    sys_settings.wifi.wifi_enabled = cJSON_IsTrue(wifi_enabled_item);
     memset(&sys_settings.wifi.ip, 0, sizeof(sys_settings.wifi.ip));
     sys_settings.wifi.ip.dhcp = cJSON_IsTrue(ip_dhcp_item);
     strncpy(sys_settings.wifi.ip.ip, cJSON_GetStringValue(ip_ip_item), sizeof(sys_settings.wifi.ip.ip) - 1);
@@ -566,10 +787,34 @@ static esp_err_t post_settings_wifi(httpd_req_t *req)
     strncpy((char *)sys_settings.wifi.ap.password, ap_password, sizeof(sys_settings.wifi.ap.password) - 1);
     strncpy((char *)sys_settings.wifi.sta.ssid, sta_ssid, sizeof(sys_settings.wifi.sta.ssid) - 1);
     strncpy((char *)sys_settings.wifi.sta.password, sta_password, sizeof(sys_settings.wifi.sta.password) - 1);
+    // zigbee
+    //  sys_settings.zigbee.zigbee_present = cJSON_IsTrue(zigbee_present_item);
+    sys_settings.zigbee.zigbee_enabled = cJSON_IsTrue(zigbee_enabled_item);
+    memset(sys_settings.zigbee.modelname, 0, sizeof(sys_settings.zigbee.modelname));
+    strncpy((char *)sys_settings.zigbee.modelname, modelname, sizeof(sys_settings.zigbee.modelname) - 1);
+    memset(sys_settings.zigbee.manufactuer, 0, sizeof(sys_settings.zigbee.manufactuer));
+    strncpy((char *)sys_settings.zigbee.manufactuer, manufactuer, sizeof(sys_settings.zigbee.manufactuer) - 1);
+    memset(sys_settings.zigbee.manufactuer_id, 0, sizeof(sys_settings.zigbee.manufactuer_id));
+    strncpy((char *)sys_settings.zigbee.manufactuer_id, manufactuer_id, sizeof(sys_settings.zigbee.manufactuer_id) - 1);
+    // mqtt
+    sys_settings.mqtt.mqtt_enabled = cJSON_IsTrue(mqtt_enabled_item);
+    sys_settings.mqtt.mqtt_conected = cJSON_IsTrue(mqtt_conected_item);
+    memset(sys_settings.mqtt.server, 0, sizeof(sys_settings.mqtt.server));
+    strncpy((char *)sys_settings.mqtt.server, mqtt_server, sizeof(sys_settings.mqtt.server) - 1);
+    sys_settings.mqtt.port = port_item;
+    memset(sys_settings.mqtt.prefx, 0, sizeof(sys_settings.mqtt.prefx));
+    strncpy((char *)sys_settings.mqtt.prefx, mqtt_prefx, sizeof(sys_settings.mqtt.prefx) - 1);
+    memset(sys_settings.mqtt.user, 0, sizeof(sys_settings.mqtt.user));
+    strncpy((char *)sys_settings.mqtt.user, mqtt_user, sizeof(sys_settings.mqtt.user) - 1);
+    memset(sys_settings.mqtt.password, 0, sizeof(sys_settings.mqtt.password));
+    strncpy((char *)sys_settings.mqtt.password, mqtt_password, sizeof(sys_settings.mqtt.password) - 1);
+    memset(sys_settings.mqtt.path, 0, sizeof(sys_settings.mqtt.path));
+    strncpy((char *)sys_settings.mqtt.path, mqtt_path, sizeof(sys_settings.mqtt.path) - 1);
 
     err = sys_settings_save_nvs();
+    // err = sys_settings_save_spiffs();
     msg = err != ESP_OK
-              ? "Error saving system settings"
+              ? msg
               : "Settings saved, reboot to apply";
 
 exit:
@@ -1006,12 +1251,13 @@ static esp_err_t download_get_handler(httpd_req_t *req)
 
     if (stat(filepath, &file_stat) == -1)
     {
-        // ESP_LOGE(TAG, "Failed to stat file : %s Try .gz", filepath);
+        ESP_LOGI(TAG, "Failed to stat file : %s Try .gz", filepath);
         strcat(filepath, ".gz");
         // ESP_LOGI(TAG, "file .gz : %s", filepath);
         if (stat(filepath, &file_stat) == -1)
         {
             /* Respond with 404 Not Found */
+            ESP_LOGE(TAG, "Failed to stat file : %s", filepath);
             httpd_resp_send_err(req, HTTPD_404_NOT_FOUND, "File does not exist");
             return ESP_FAIL;
         }
@@ -1066,14 +1312,10 @@ static esp_err_t download_get_handler(httpd_req_t *req)
 ////////////////////////////////////////////////////////////////////////////////
 static esp_err_t saveelement_handler(httpd_req_t *req)
 {
-
     char buf[10000];
     int ret, remaining = req->content_len;
-
     httpd_resp_set_type(req, "application/json");
-
     char *body_complete_data;
-
     const char *initial_body = "";
     body_complete_data = malloc(10000);
     strcpy(body_complete_data, initial_body);
@@ -1086,7 +1328,6 @@ static esp_err_t saveelement_handler(httpd_req_t *req)
         {
             if (ret == HTTPD_SOCK_ERR_TIMEOUT)
             {
-
                 continue;
             }
             return ESP_FAIL;
@@ -1094,64 +1335,66 @@ static esp_err_t saveelement_handler(httpd_req_t *req)
 
         httpd_resp_send_chunk(req, buf, ret);
         remaining -= ret;
-
         strcat(body_complete_data, buf);
     }
-
     cJSON *body_json = cJSON_Parse(body_complete_data);
     char *string = cJSON_Print(body_json);
     // ESP_LOGI("WEBSEVER_INTERNAL", "%s", string);
-    writeFile("/spiffs_storage/settings.json", "wb", string);
-    httpd_resp_send_chunk(req, NULL, 0);
+    writeFile("/spiffs_storage/config.json", "wb", string);
     free(body_complete_data);
-    ESP_LOGI(TAG, "Element JSON saved...");
+    ESP_LOGI(TAG, "Сonfig JSON saved...");
+    httpd_resp_send_chunk(req, NULL, 0);
     return ESP_OK;
 }
 
 ////////////////////////////////////////////////////////////////////////////////
+
+// Сохранение кофига в виде JSON не используется
+/*
 static esp_err_t saveconfig_handler(httpd_req_t *req)
 {
-    char buf[10000];
-    int ret, remaining = req->content_len;
+char buf[10000];
+int ret, remaining = req->content_len;
 
-    httpd_resp_set_type(req, "application/json");
+httpd_resp_set_type(req, "application/json");
 
-    char *body_complete_data;
+char *body_complete_data;
 
-    const char *initial_body = "";
-    body_complete_data = malloc(10000);
-    strcpy(body_complete_data, initial_body);
-    // strcat(body_complete_data, buf);
-    while (remaining > 0)
+const char *initial_body = "";
+body_complete_data = malloc(10000);
+strcpy(body_complete_data, initial_body);
+// strcat(body_complete_data, buf);
+while (remaining > 0)
+{
+
+    if ((ret = httpd_req_recv(req, buf,
+                              MIN(remaining, sizeof(buf)))) <= 0)
     {
-
-        if ((ret = httpd_req_recv(req, buf,
-                                  MIN(remaining, sizeof(buf)))) <= 0)
+        if (ret == HTTPD_SOCK_ERR_TIMEOUT)
         {
-            if (ret == HTTPD_SOCK_ERR_TIMEOUT)
-            {
 
-                continue;
-            }
-            return ESP_FAIL;
+            continue;
         }
-
-        httpd_resp_send_chunk(req, buf, ret);
-        remaining -= ret;
-
-        strcat(body_complete_data, buf);
+        return ESP_FAIL;
     }
 
-    // ESP_LOGI("WEBSEVER_INTERNAL", "%s", body_complete_data);
-    cJSON *body_json = cJSON_Parse(body_complete_data);
-    char *string = cJSON_Print(body_json);
-    //  ESP_LOGI("WEBSEVER_INTERNAL", "%s", string);
-    writeFile("/spiffs_storage/config.json", "w", string);
-    httpd_resp_send_chunk(req, NULL, 0);
-    free(body_complete_data);
-    ESP_LOGI(TAG, "Config JSON saved...");
-    return ESP_OK;
+    httpd_resp_send_chunk(req, buf, ret);
+    remaining -= ret;
+
+    strcat(body_complete_data, buf);
 }
+
+// ESP_LOGI("WEBSEVER_INTERNAL", "%s", body_complete_data);
+cJSON *body_json = cJSON_Parse(body_complete_data);
+char *string = cJSON_Print(body_json);
+//  ESP_LOGI("WEBSEVER_INTERNAL", "%s", string);
+writeFile("/spiffs_storage/config.json", "w", string);
+httpd_resp_send_chunk(req, NULL, 0);
+free(body_complete_data);
+ESP_LOGI(TAG, "Config JSON saved...");
+return ESP_OK;
+}
+*/
 
 ////////////////////////////////////////////////////////////////////////////////
 static esp_err_t upload_ota_handler(httpd_req_t *req)
@@ -1332,14 +1575,16 @@ esp_err_t api_init(httpd_handle_t server)
         .user_ctx = server_data // Pass server data as context
     };
     CHECK(httpd_register_uri_handler(server, &saveelement));
-
-    httpd_uri_t saveconfig = {
-        .uri = "/saveconfig",
-        .method = HTTP_POST,
-        .handler = saveconfig_handler,
-        // .user_ctx = server_data // Pass server data as context
-    };
+    // Сохранение кофига в виде JSON не используется
+    /*
+        httpd_uri_t saveconfig = {
+            .uri = "/saveconfig",
+            .method = HTTP_POST,
+            .handler = saveconfig_handler,
+            // .user_ctx = server_data // Pass server data as context
+        };
     CHECK(httpd_register_uri_handler(server, &saveconfig));
+     */
     httpd_uri_t ota_firmware_update = {
         .uri = "/upload_firmware",
         .method = HTTP_POST,

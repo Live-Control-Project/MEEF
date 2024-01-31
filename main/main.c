@@ -82,7 +82,7 @@ static void main_loop(void *arg)
             ESP_LOGI(TAG, "Button event %d", e.type);
             if (e.type == 2)
             {
-                writeJSONtoFile("config.json", &sys_settings);
+                //   writeJSONtoFile("config.json", &sys_settings);
             }
             break;
         case EVENT_NETWORK_UP:
@@ -110,7 +110,7 @@ void load_element_json(const char base_path)
     FILE *file = fopen("/spiffs_storage/settings.json", "r");
     if (file == NULL)
     {
-        ESP_LOGE(TAG, "File does not exist!");
+        ESP_LOGE(TAG, "File settings.json does not exist!");
     }
     else
     {
@@ -146,7 +146,7 @@ void load_element_json(const char base_path)
         FILE *file = fopen("/spiffs_storage/config.json", "r");
         if (file == NULL)
         {
-            ESP_LOGE(TAG, "File does not exist!");
+            ESP_LOGE(TAG, "File config.json does not exist!");
         }
         else
         {
@@ -243,12 +243,17 @@ void app_main()
     // sensor_init();
 
     // Start WIFI
-    esp_err_t res = wifi_init();
-    if (res != ESP_OK)
-        ESP_LOGW(TAG, "Could not start WiFi: %d (%s)", res, esp_err_to_name(res));
-
-    // Инициализация zigbee в модуле wifi после старта mqtt
-    // zigbee_init();
+    if (sys_settings.wifi.wifi_enabled && sys_settings.wifi.wifi_present)
+    {
+        esp_err_t res = wifi_init();
+        if (res != ESP_OK)
+            ESP_LOGW(TAG, "Could not start WiFi: %d (%s)", res, esp_err_to_name(res));
+    }
+    // Инициализация zigbee если WiFi выключен. Если включен, то в модуле wifi после старта
+    if (!sys_settings.wifi.wifi_enabled && sys_settings.zigbee.zigbee_present && sys_settings.zigbee.zigbee_enabled)
+    {
+        zigbee_init();
+    }
 
     ESP_LOGI(TAG, "[APP] Free memory: %" PRIu32 " Kb", esp_get_free_heap_size() / 1024);
     // Create main task

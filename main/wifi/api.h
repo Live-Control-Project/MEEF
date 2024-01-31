@@ -19,6 +19,12 @@
 // POST /api/lamp/state             -> set current lamp state, effect, brightness and FPS
 // GET  /api/lamp/effect            -> get current effect settings
 // POST /api/lamp/effect            -> set current effect settings
+// GET  /*                          -> отправка любых файлов
+// POST /saveelement                -> сохранение списка элементов
+// POST /upload_firmware            -> обновление прошивки OTA
+
+// Сохранение кофига в виде JSON не используется
+// POST /saveconfig                 -> сохранение конфигурации
 
 esp_err_t api_init(httpd_handle_t server);
 

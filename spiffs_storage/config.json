@@ -1,15 +1,1 @@
-[
-    {
-        "zigbee": true,
-        "zigbee_enabled": false,
-        "modelname": "zigbee DIY",
-        "manufactuer": "meef.ru",
-        "manufactuer_id": "",
-        "wifi": true,
-        "wifi_enabled": true,
-        "wifi_sta_ssid": "perenio",
-        "wifi_sta_passwd": "4455667788",
-        "wifi_ap_ssid": "MEEF",
-        "wifi_ap_passwd": ""
-    }
-]
+[]

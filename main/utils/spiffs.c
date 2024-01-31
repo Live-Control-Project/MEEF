@@ -45,7 +45,7 @@ esp_err_t mount_storage(const char *base_path)
 		return ret;
 	}
 
-	ESP_LOGI(TAG_spiffs, "Partition size: total: %d, used: %d", total, used);
+	ESP_LOGI(TAG_spiffs, "Partition size: total: %dKb, used: %dKb", total / 1024, used / 1024);
 	return ESP_OK;
 }
 
@@ -79,10 +79,13 @@ static int writeFile(char *fname, char *mode, char *buf)
 	}
 	return 0;
 }
+
 void writeJSONtoFile(char fileName, char *json_data)
 {
 	cJSON *body_json = cJSON_Parse(json_data);
 	char *string = cJSON_Print(body_json);
-	writeFile("/spiffs_storage/config.json", "w", string);
+	const char *base_path = "/spiffs_storage/";
+	strcat(base_path, fileName);
+	writeFile(base_path, "w", string);
 	free(json_data);
 }

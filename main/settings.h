@@ -16,11 +16,19 @@ typedef struct
 {
     struct
     {
+        char devicename[16];
+    } device;
+    struct
+    {
         uint32_t mode;
+        bool wifi_present;
+        bool wifi_enabled;
+        bool wifi_conected;
         struct
         {
             bool dhcp;
             char ip[16];
+            char staip[16];
             char netmask[16];
             char gateway[16];
             char dns[16];
@@ -28,6 +36,28 @@ typedef struct
         wifi_ap_config_t ap;
         wifi_sta_config_t sta;
     } wifi;
+    struct
+    {
+        bool zigbee_present;
+        bool zigbee_enabled;
+        bool zigbee_conected;
+        char modelname[16];
+        char manufactuer[16];
+        char manufactuer_id[16];
+
+    } zigbee;
+    struct
+    {
+        bool mqtt_enabled;
+        bool mqtt_conected;
+        char server[16];
+        int port;
+        char prefx[16];
+        char user[16];
+        char password[16];
+        char path[16];
+
+    } mqtt;
     struct
     {
         uint8_t block_width;
@@ -58,6 +88,8 @@ esp_err_t sys_settings_reset_nvs();
 esp_err_t sys_settings_load_nvs();
 
 esp_err_t sys_settings_save_nvs();
+
+esp_err_t sys_settings_save_spiffs();
 
 esp_err_t vol_settings_reset();
 

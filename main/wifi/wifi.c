@@ -24,6 +24,7 @@ static void log_ip_info()
     ESP_LOGI(TAG_wifi, "Netmask:    " IPSTR, IP2STR(&ip_info.netmask));
     ESP_LOGI(TAG_wifi, "Gateway:    " IPSTR, IP2STR(&ip_info.gw));
     ESP_LOGI(TAG_wifi, "--------------------------------------------------");
+    sprintf(sys_settings.wifi.ip.staip, IPSTR, IP2STR(&ip_info.ip));
 
     esp_netif_dns_info_t dns;
     for (esp_netif_dns_type_t t = ESP_NETIF_DNS_MAIN; t < ESP_NETIF_DNS_MAX; t++)
