@@ -12,7 +12,7 @@
 #include "modules/sensors/sensor_init.h"
 
 cJSON *sensor_json = NULL;
-cJSON *config_json = NULL;
+cJSON *settings_json = NULL;
 
 inline static void process_button_event(event_t *e)
 {
@@ -107,10 +107,11 @@ static void main_loop(void *arg)
 }
 void load_element_json(const char base_path)
 {
-    FILE *file = fopen("/spiffs_storage/settings.json", "r");
+    // загружаем датчики файла
+    FILE *file = fopen("/spiffs_storage/config.json", "r");
     if (file == NULL)
     {
-        ESP_LOGE(TAG, "File settings.json does not exist!");
+        ESP_LOGE(TAG, "File config.json does not exist!");
     }
     else
     {
@@ -143,10 +144,13 @@ void load_element_json(const char base_path)
                 ESP_LOGE(TAG, "Error before: %s", error_ptr);
             }
         }
-        FILE *file = fopen("/spiffs_storage/config.json", "r");
+
+        // загружаем конфигурациюиз файла
+        FILE *file = fopen("/spiffs_storage/settings.json", "r");
         if (file == NULL)
         {
-            ESP_LOGE(TAG, "File config.json does not exist!");
+            ESP_LOGE(TAG, "File settings.json does not exist!");
+            ESP_LOGI(TAG, "Load from NVS");
         }
         else
         {
@@ -169,8 +173,8 @@ void load_element_json(const char base_path)
 
             fclose(file);
             //
-            config_json = cJSON_Parse(json_buffer);
-            if (config_json == NULL)
+            settings_json = cJSON_Parse(json_buffer);
+            if (settings_json == NULL)
             {
 
                 const char *error_ptr = cJSON_GetErrorPtr();
@@ -178,7 +182,7 @@ void load_element_json(const char base_path)
                 {
                     ESP_LOGE(TAG, "Error before: %s", error_ptr);
                 }
-                cJSON_Delete(config_json);
+                cJSON_Delete(settings_json);
                 esp_vfs_spiffs_unregister(NULL);
                 return;
             }

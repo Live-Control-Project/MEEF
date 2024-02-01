@@ -475,8 +475,8 @@ CONFIG_EL_BRIGHTNESS_DEFAULT=255
 #
 # Default WiFi configuration
 #
-# CONFIG_EL_WIFI_MODE_AP is not set
-CONFIG_EL_WIFI_MODE_STA=y
+CONFIG_EL_WIFI_MODE_AP=y
+# CONFIG_EL_WIFI_MODE_STA is not set
 
 #
 # Access point mode

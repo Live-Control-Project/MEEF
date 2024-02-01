@@ -48,7 +48,7 @@ static system_settings_t sys_defaults = {
         .zigbee_conected = false,
         .modelname = "zigbee DIY",
         .manufactuer = "MEEF",
-        .manufactuer_id = "",
+        .manufactuer_id = "0x1001",
     },
     .mqtt = {
         .mqtt_enabled = false,

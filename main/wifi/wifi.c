@@ -39,9 +39,9 @@ static void set_ip_info()
 {
     esp_err_t res;
 
-    if (!sys_settings.wifi.ip.dhcp || sys_settings.wifi.mode == WIFI_MODE_APSTA)
+    if (!sys_settings.wifi.ip.dhcp || sys_settings.wifi.mode == WIFI_MODE_AP)
     {
-        if (sys_settings.wifi.mode == WIFI_MODE_APSTA)
+        if (sys_settings.wifi.mode == WIFI_MODE_AP)
             esp_netif_dhcps_stop(iface);
         else
             esp_netif_dhcpc_stop(iface);
@@ -54,7 +54,7 @@ static void set_ip_info()
         if (res != ESP_OK)
             ESP_LOGW(TAG_wifi, "Error setting IP address %d (%s)", res, esp_err_to_name(res));
 
-        if (sys_settings.wifi.mode == WIFI_MODE_APSTA)
+        if (sys_settings.wifi.mode == WIFI_MODE_AP)
             esp_netif_dhcps_start(iface);
     }
 
@@ -62,7 +62,7 @@ static void set_ip_info()
     dns.ip.type = IPADDR_TYPE_V4;
     dns.ip.u_addr.ip4.addr = ipaddr_addr(sys_settings.wifi.ip.dns);
     res = esp_netif_set_dns_info(iface,
-                                 sys_settings.wifi.mode != WIFI_MODE_APSTA && sys_settings.wifi.ip.dhcp
+                                 sys_settings.wifi.mode != WIFI_MODE_AP && sys_settings.wifi.ip.dhcp
                                      ? ESP_NETIF_DNS_FALLBACK
                                      : ESP_NETIF_DNS_MAIN,
                                  &dns);
@@ -109,7 +109,7 @@ static void wifi_handler(void *arg, esp_event_base_t event_base, int32_t event_i
             ESP_LOGI(TAG_wifi, "Starting AP");
             //  ESP_ERROR_CHECK(esp_wifi_stop());
             //  ESP_ERROR_CHECK(esp_wifi_deinit());
-            ESP_ERROR_CHECK(esp_wifi_set_mode(WIFI_MODE_APSTA));
+            ESP_ERROR_CHECK(esp_wifi_set_mode(WIFI_MODE_AP));
             ESP_ERROR_CHECK(esp_wifi_start());
         }
         break;
@@ -167,7 +167,7 @@ static esp_err_t init_ap()
     ESP_LOGI(TAG_wifi, "Auth mode: %s", wifi_cfg.ap.authmode == WIFI_AUTH_OPEN ? "Open" : "WPA2/PSK");
     ESP_LOGI(TAG_wifi, "--------------------------------------------------");
 
-    CHECK(esp_wifi_set_mode(WIFI_MODE_APSTA));
+    CHECK(esp_wifi_set_mode(WIFI_MODE_AP));
     CHECK(esp_wifi_set_config(WIFI_IF_AP, &wifi_cfg));
     CHECK(esp_wifi_start());
 
@@ -212,7 +212,6 @@ void wifi_AP_task(void *arg)
         vTaskDelay(180000 / portTICK_PERIOD_MS);
         s_retry_num = 0;
         ESP_ERROR_CHECK(esp_wifi_set_mode(WIFI_MODE_STA));
-        s_retry_num = 0;
         if ((res = esp_wifi_connect()) != ESP_OK)
             ESP_LOGE(TAG_wifi, "WiFi error %d [%s]", res, esp_err_to_name(res));
     }
@@ -227,7 +226,7 @@ esp_err_t wifi_init()
     else
         CHECK(init_sta());
 
-    xTaskCreate(wifi_AP_task, "wifi_AP_task", 4096, NULL, 5, &myTaskHandle);
+    //  xTaskCreate(wifi_AP_task, "wifi_AP_task", 4096, NULL, 5, &myTaskHandle);
     vTaskSuspend(myTaskHandle);
     return ESP_OK;
 }

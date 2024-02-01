@@ -1,7 +1,7 @@
 #include "zigbee_init.h"
 #include "zcl/esp_zigbee_zcl_common.h"
 #include "esp_check.h"
-#include "esp_err.h"
+#include "esp_err.h" TAG_zigbee
 #include "esp_log.h"
 #include "nvs_flash.h"
 #include "string.h"
@@ -12,15 +12,16 @@
 #include <time.h>
 #include <sys/time.h>
 #include "cJSON.h"
+#include "../settings.h"
 #include "../modules/sensors/gpioOUT/sensor_gpioOUT.h"
 
 extern cJSON *sensor_json;
-extern cJSON *config_json;
+extern cJSON *settings_json;
 /*------ Clobal definitions -----------*/
 static char manufacturer[16], model[16], firmware_version[16];
 bool time_updated = false, connected = false;
 char strftime_buf[64];
-static const char *TAG = "ZIGBEE";
+static const char *TAG_zigbee = "ZIGBEE";
 
 // static light_data_t light_data;
 
@@ -78,17 +79,17 @@ static esp_err_t zb_attribute_handler(const esp_zb_zcl_set_attr_value_message_t 
 {
     esp_err_t ret = ESP_OK;
     bool rele_state = 0;
-    ESP_RETURN_ON_FALSE(message, ESP_FAIL, TAG, "Empty message");
-    ESP_RETURN_ON_FALSE(message->info.status == ESP_ZB_ZCL_STATUS_SUCCESS, ESP_ERR_INVALID_ARG, TAG, "Received message: error status(%d)",
+    ESP_RETURN_ON_FALSE(message, ESP_FAIL, TAG_zigbee, "Empty message");
+    ESP_RETURN_ON_FALSE(message->info.status == ESP_ZB_ZCL_STATUS_SUCCESS, ESP_ERR_INVALID_ARG, TAG_zigbee, "Received message: error status(%d)",
                         message->info.status);
-    ESP_LOGI(TAG, "Received message: endpoint(%d), cluster(0x%x), attribute(0x%x), data size(%d)", message->info.dst_endpoint, message->info.cluster,
+    ESP_LOGI(TAG_zigbee, "Received message: endpoint(%d), cluster(0x%x), attribute(0x%x), data size(%d)", message->info.dst_endpoint, message->info.cluster,
              message->attribute.id, message->attribute.data.size);
     //  if (message->info.dst_endpoint == ENDPOINT)
     //  {
     switch (message->info.cluster)
     {
     case ESP_ZB_ZCL_CLUSTER_ID_IDENTIFY:
-        ESP_LOGI(TAG, "Identify pressed");
+        ESP_LOGI(TAG_zigbee, "Identify pressed");
         break;
     case ESP_ZB_ZCL_CLUSTER_ID_ON_OFF:
 
@@ -115,7 +116,7 @@ static esp_err_t zb_attribute_handler(const esp_zb_zcl_set_attr_value_message_t 
                         int pin = cJSON_GetObjectItemCaseSensitive(item, "pin")->valueint;
                         rele_state = message->attribute.data.value ? *(bool *)message->attribute.data.value : rele_state;
                         gpio_set_level(pin, rele_state);
-                        ESP_LOGI(TAG, "PIN %d sets to %s", pin, rele_state ? "On" : "Off");
+                        ESP_LOGI(TAG_zigbee, "PIN %d sets to %s", pin, rele_state ? "On" : "Off");
                         if (saveState == 1)
                         {
                             int32_t value_to_save = *(int32_t *)message->attribute.data.value;
@@ -123,11 +124,11 @@ static esp_err_t zb_attribute_handler(const esp_zb_zcl_set_attr_value_message_t 
                             esp_err_t result = saveIntToNVS(id, value_to_save);
                             if (result != ESP_OK)
                             {
-                                ESP_LOGE(TAG, "Error saving int to NVS: %d", result);
+                                ESP_LOGE(TAG_zigbee, "Error saving int to NVS: %d", result);
                             }
                             else
                             {
-                                ESP_LOGI(TAG, "Rele state saved ");
+                                ESP_LOGI(TAG_zigbee, "Rele state saved ");
                             }
                         }
                     }
@@ -174,7 +175,7 @@ static esp_err_t zb_attribute_handler(const esp_zb_zcl_set_attr_value_message_t 
         break;
 
     default:
-        ESP_LOGI(TAG, "Message data: cluster(0x%x), attribute(0x%x)  ", message->info.cluster, message->attribute.id);
+        ESP_LOGI(TAG_zigbee, "Message data: cluster(0x%x), attribute(0x%x)  ", message->info.cluster, message->attribute.id);
     }
 
     return ret;
@@ -182,10 +183,10 @@ static esp_err_t zb_attribute_handler(const esp_zb_zcl_set_attr_value_message_t 
 
 static esp_err_t zb_read_attr_resp_handler(const esp_zb_zcl_cmd_read_attr_resp_message_t *message)
 {
-    ESP_RETURN_ON_FALSE(message, ESP_FAIL, TAG, "Empty message");
-    ESP_RETURN_ON_FALSE(message->info.status == ESP_ZB_ZCL_STATUS_SUCCESS, ESP_ERR_INVALID_ARG, TAG, "Received message: error status(%d)",
+    ESP_RETURN_ON_FALSE(message, ESP_FAIL, TAG_zigbee, "Empty message");
+    ESP_RETURN_ON_FALSE(message->info.status == ESP_ZB_ZCL_STATUS_SUCCESS, ESP_ERR_INVALID_ARG, TAG_zigbee, "Received message: error status(%d)",
                         message->info.status);
-    ESP_LOGI(TAG, "Read attribute response: status(%d), cluster(0x%x), attribute(0x%x), type(0x%x), value(%d)", message->info.status,
+    ESP_LOGI(TAG_zigbee, "Read attribute response: status(%d), cluster(0x%x), attribute(0x%x), type(0x%x), value(%d)", message->info.status,
              message->info.cluster, message->variables->attribute.id, message->variables->attribute.data.type,
              message->variables->attribute.data.value ? *(uint8_t *)message->variables->attribute.data.value : 0);
     if (message->info.dst_endpoint == ENDPOINT)
@@ -193,14 +194,14 @@ static esp_err_t zb_read_attr_resp_handler(const esp_zb_zcl_cmd_read_attr_resp_m
         switch (message->info.cluster)
         {
         case ESP_ZB_ZCL_CLUSTER_ID_TIME:
-            ESP_LOGI(TAG, "Server time recieved %lu", *(uint32_t *)message->variables->attribute.data.value);
+            ESP_LOGI(TAG_zigbee, "Server time recieved %lu", *(uint32_t *)message->variables->attribute.data.value);
             struct timeval tv;
             tv.tv_sec = *(uint32_t *)message->variables->attribute.data.value + 946684800 - 1080; // after adding OTA cluster time shifted to 1080 sec... strange issue ...
             settimeofday(&tv, NULL);
             time_updated = true;
             break;
         default:
-            ESP_LOGI(TAG, "Message data: cluster(0x%x), attribute(0x%x)  ", message->info.cluster, message->variables->attribute.id);
+            ESP_LOGI(TAG_zigbee, "Message data: cluster(0x%x), attribute(0x%x)  ", message->info.cluster, message->variables->attribute.id);
         }
     }
     return ESP_OK;
@@ -218,7 +219,7 @@ static esp_err_t zb_action_handler(esp_zb_core_action_callback_id_t callback_id,
         ret = zb_read_attr_resp_handler((esp_zb_zcl_cmd_read_attr_resp_message_t *)message);
         break;
     default:
-        ESP_LOGW(TAG, "Receive Zigbee action(0x%x) callback", callback_id);
+        ESP_LOGW(TAG_zigbee, "Receive Zigbee action(0x%x) callback", callback_id);
         break;
     }
     return ret;
@@ -253,7 +254,7 @@ void esp_zb_app_signal_handler(esp_zb_app_signal_t *signal_struct)
         if (err_status != ESP_OK)
         {
             connected = false;
-            ESP_LOGW(TAG, "Stack %s failure with %s status, steering", esp_zb_zdo_signal_to_string(sig_type), esp_err_to_name(err_status));
+            ESP_LOGW(TAG_zigbee, "Stack %s failure with %s status, steering", esp_zb_zdo_signal_to_string(sig_type), esp_err_to_name(err_status));
             esp_zb_scheduler_alarm((esp_zb_callback_t)bdb_start_top_level_commissioning_cb, ESP_ZB_BDB_MODE_NETWORK_STEERING, 1000);
         }
         else
@@ -262,7 +263,7 @@ void esp_zb_app_signal_handler(esp_zb_app_signal_t *signal_struct)
             connected = true;
             esp_zb_ieee_addr_t extended_pan_id;
             esp_zb_get_extended_pan_id(extended_pan_id);
-            ESP_LOGI(TAG, "Joined network successfully (Extended PAN ID: %02x:%02x:%02x:%02x:%02x:%02x:%02x:%02x, PAN ID: 0x%04hx, Channel:%d)",
+            ESP_LOGI(TAG_zigbee, "Joined network successfully (Extended PAN ID: %02x:%02x:%02x:%02x:%02x:%02x:%02x:%02x, PAN ID: 0x%04hx, Channel:%d)",
                      extended_pan_id[7], extended_pan_id[6], extended_pan_id[5], extended_pan_id[4],
                      extended_pan_id[3], extended_pan_id[2], extended_pan_id[1], extended_pan_id[0],
                      esp_zb_get_pan_id(), esp_zb_get_current_channel());
@@ -275,12 +276,12 @@ void esp_zb_app_signal_handler(esp_zb_app_signal_t *signal_struct)
         leave_params = (esp_zb_zdo_signal_leave_params_t *)esp_zb_app_signal_get_params(p_sg_p);
         if (leave_params->leave_type == ESP_ZB_NWK_LEAVE_TYPE_RESET)
         {
-            ESP_LOGI(TAG, "Reset device");
+            ESP_LOGI(TAG_zigbee, "Reset device");
             esp_zb_factory_reset();
         }
         break;
     default:
-        ESP_LOGI(TAG, "ZDO signal: %s (0x%x), status: %s", esp_zb_zdo_signal_to_string(sig_type), sig_type,
+        ESP_LOGI(TAG_zigbee, "ZDO signal: %s (0x%x), status: %s", esp_zb_zdo_signal_to_string(sig_type), sig_type,
                  esp_err_to_name(err_status));
         break;
     }
@@ -322,7 +323,7 @@ esp_zb_cluster_list_t *get_existing_or_create_new_list(int index)
 }
 void createAttributes(esp_zb_cluster_list_t *esp_zb_cluster_list, char *cluster, int EP)
 {
-    ESP_LOGW(TAG, "Cluster: %s created. EP: %d", cluster, EP);
+    ESP_LOGW(TAG_zigbee, "Cluster: %s created. EP: %d", cluster, EP);
     uint16_t undefined_value;
     undefined_value = 0x8000;
 
@@ -545,42 +546,75 @@ static void esp_zb_task(void *pvParameters)
     /* initialize Zigbee stack */
     esp_zb_cfg_t zb_nwk_cfg = ESP_ZB_ZR_CONFIG();
     esp_zb_init(&zb_nwk_cfg);
-
-    cJSON *manufactuer = cJSON_GetObjectItemCaseSensitive(config_json->child, "manufactuer");
-    if (manufactuer != NULL && cJSON_IsString(manufactuer))
+    if (strcmp((char *)sys_settings.zigbee.manufactuer, "") != 0)
     {
-        ESP_LOGI(TAG, "Manufactuer Name: %s", manufactuer->valuestring);
-        set_zcl_string(manufacturer, manufactuer->valuestring);
+        ESP_LOGI(TAG_zigbee, "Manufactuer Name: %s", sys_settings.zigbee.manufactuer);
+        set_zcl_string(manufacturer, sys_settings.zigbee.manufactuer);
     }
     else
     {
-        ESP_LOGE(TAG, "Error accessing manufactuer name from JSON");
+        ESP_LOGE(TAG_zigbee, "Error accessing manufactuer name from JSON");
         set_zcl_string(manufacturer, MANUFACTURER_NAME);
     }
-    cJSON *modelname = cJSON_GetObjectItemCaseSensitive(config_json->child, "modelname");
-    if (modelname != NULL && cJSON_IsString(modelname))
+    if (strcmp((char *)sys_settings.zigbee.modelname, "") != 0)
     {
-        ESP_LOGI(TAG, "Model Name: %s", modelname->valuestring);
-        set_zcl_string(model, modelname->valuestring);
+        ESP_LOGI(TAG_zigbee, "Model Name: %s", sys_settings.zigbee.modelname);
+        set_zcl_string(model, sys_settings.zigbee.modelname);
     }
     else
     {
-        ESP_LOGE(TAG, "Error accessing model name from JSON");
+        ESP_LOGE(TAG_zigbee, "Error accessing model name from JSON");
         set_zcl_string(model, MODEL_NAME);
     }
-    cJSON *manufactuer_id = cJSON_GetObjectItemCaseSensitive(config_json->child, "manufactuer_id");
     char manuf_id;
-    if (manufactuer_id != NULL && cJSON_IsString(manufactuer_id))
+    if (strcmp((char *)sys_settings.zigbee.manufactuer_id, "") != 0)
     {
-        ESP_LOGI(TAG, "OTA_UPGRADE_MANUFACTURER: %s", manufactuer_id->valuestring);
-        manuf_id = manufactuer_id->valuestring;
+        ESP_LOGI(TAG_zigbee, "OTA_UPGRADE_MANUFACTURER: %s", sys_settings.zigbee.manufactuer_id);
+        manuf_id = sys_settings.zigbee.manufactuer_id;
     }
     else
     {
         manuf_id = OTA_UPGRADE_MANUFACTURER;
-        ESP_LOGE(TAG, "Error accessing OTA_UPGRADE_MANUFACTURER from JSON");
+        ESP_LOGE(TAG_zigbee, "Error accessing OTA_UPGRADE_MANUFACTURER from JSON");
     }
-    /* basic cluster create with fully customized */
+    /*
+        cJSON *manufactuer = cJSON_GetObjectItemCaseSensitive(settings_json->child, "manufactuer");
+        if (manufactuer != NULL && cJSON_IsString(manufactuer))
+        {
+            ESP_LOGI(TAG_zigbee, "Manufactuer Name: %s", manufactuer->valuestring);
+            set_zcl_string(manufacturer, manufactuer->valuestring);
+        }
+        else
+        {
+            ESP_LOGE(TAG_zigbee, "Error accessing manufactuer name from JSON");
+            set_zcl_string(manufacturer, MANUFACTURER_NAME);
+        }
+        cJSON *modelname = cJSON_GetObjectItemCaseSensitive(settings_json->child, "modelname");
+        if (modelname != NULL && cJSON_IsString(modelname))
+        {
+            ESP_LOGI(TAG_zigbee, "Model Name: %s", modelname->valuestring);
+            set_zcl_string(model, modelname->valuestring);
+        }
+        else
+        {
+            ESP_LOGE(TAG_zigbee, "Error accessing model name from JSON");
+            set_zcl_string(model, MODEL_NAME);
+        }
+        cJSON *manufactuer_id = cJSON_GetObjectItemCaseSensitive(settings_json->child, "manufactuer_id");
+        char manuf_id;
+        if (manufactuer_id != NULL && cJSON_IsString(manufactuer_id))
+        {
+            ESP_LOGI(TAG_zigbee, "OTA_UPGRADE_MANUFACTURER: %s", manufactuer_id->valuestring);
+            manuf_id = manufactuer_id->valuestring;
+        }
+        else
+        {
+            manuf_id = OTA_UPGRADE_MANUFACTURER;
+            ESP_LOGE(TAG_zigbee, "Error accessing OTA_UPGRADE_MANUFACTURER from JSON");
+        }
+        */
+
+    /* basic cluster create */
 
     set_zcl_string(firmware_version, FIRMWARE_VERSION);
     uint8_t dc_power_source;
@@ -632,6 +666,7 @@ static void esp_zb_task(void *pvParameters)
     esp_zb_ep_list_t *esp_zb_ep_list = esp_zb_ep_list_create();
 
     //---------------------------------------------------------------------------------------------------------------//
+
     cJSON *item = sensor_json->child;
     while (item != NULL)
     {
