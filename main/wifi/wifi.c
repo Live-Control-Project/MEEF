@@ -8,9 +8,7 @@
 #include "utils/bus.h"
 
 static esp_netif_t *iface = NULL;
-static int s_retry_num = 0;
-static const char *TAG_wifi = "WiFi";
-TaskHandle_t myTaskHandle = NULL;
+
 static void log_ip_info()
 {
     if (!iface)
@@ -19,20 +17,19 @@ static void log_ip_info()
     esp_netif_ip_info_t ip_info;
     esp_netif_get_ip_info(iface, &ip_info);
 
-    ESP_LOGI(TAG_wifi, "--------------------------------------------------");
-    ESP_LOGI(TAG_wifi, "IP address: " IPSTR, IP2STR(&ip_info.ip));
-    ESP_LOGI(TAG_wifi, "Netmask:    " IPSTR, IP2STR(&ip_info.netmask));
-    ESP_LOGI(TAG_wifi, "Gateway:    " IPSTR, IP2STR(&ip_info.gw));
-    ESP_LOGI(TAG_wifi, "--------------------------------------------------");
+    ESP_LOGI(TAG, "--------------------------------------------------");
+    ESP_LOGI(TAG, "IP address: " IPSTR, IP2STR(&ip_info.ip));
+    ESP_LOGI(TAG, "Netmask:    " IPSTR, IP2STR(&ip_info.netmask));
+    ESP_LOGI(TAG, "Gateway:    " IPSTR, IP2STR(&ip_info.gw));
+    ESP_LOGI(TAG, "--------------------------------------------------");
     sprintf(sys_settings.wifi.ip.staip, IPSTR, IP2STR(&ip_info.ip));
-
     esp_netif_dns_info_t dns;
     for (esp_netif_dns_type_t t = ESP_NETIF_DNS_MAIN; t < ESP_NETIF_DNS_MAX; t++)
     {
         esp_netif_get_dns_info(iface, t, &dns);
-        ESP_LOGI(TAG_wifi, "DNS %d:      " IPSTR, t, IP2STR(&dns.ip.u_addr.ip4));
+        ESP_LOGI(TAG, "DNS %d:      " IPSTR, t, IP2STR(&dns.ip.u_addr.ip4));
     }
-    ESP_LOGI(TAG_wifi, "--------------------------------------------------");
+    ESP_LOGI(TAG, "--------------------------------------------------");
 }
 
 static void set_ip_info()
@@ -52,7 +49,7 @@ static void set_ip_info()
         ip_info.gw.addr = ipaddr_addr(sys_settings.wifi.ip.gateway);
         res = esp_netif_set_ip_info(iface, &ip_info);
         if (res != ESP_OK)
-            ESP_LOGW(TAG_wifi, "Error setting IP address %d (%s)", res, esp_err_to_name(res));
+            ESP_LOGW(TAG, "Error setting IP address %d (%s)", res, esp_err_to_name(res));
 
         if (sys_settings.wifi.mode == WIFI_MODE_AP)
             esp_netif_dhcps_start(iface);
@@ -67,7 +64,7 @@ static void set_ip_info()
                                      : ESP_NETIF_DNS_MAIN,
                                  &dns);
     if (res != ESP_OK)
-        ESP_LOGW(TAG_wifi, "Error setting DNS address %d (%s)", res, esp_err_to_name(res));
+        ESP_LOGW(TAG, "Error setting DNS address %d (%s)", res, esp_err_to_name(res));
 }
 
 static void wifi_handler(void *arg, esp_event_base_t event_base, int32_t event_id, void *event_data)
@@ -76,42 +73,25 @@ static void wifi_handler(void *arg, esp_event_base_t event_base, int32_t event_i
     switch (event_id)
     {
     case WIFI_EVENT_AP_START:
-        ESP_LOGI(TAG_wifi, "WiFi started in access point mode");
+        ESP_LOGI(TAG, "WiFi started in access point mode");
         set_ip_info();
         log_ip_info();
         bus_send_event(EVENT_NETWORK_UP, NULL, 0);
         break;
     case WIFI_EVENT_STA_START:
-        ESP_LOGI(TAG_wifi, "WiFi started in station mode, connecting...");
+        ESP_LOGI(TAG, "WiFi started in station mode, connecting...");
         if ((res = esp_wifi_connect()) != ESP_OK)
-            ESP_LOGE(TAG_wifi, "WiFi error %d [%s]", res, esp_err_to_name(res));
+            ESP_LOGE(TAG, "WiFi error %d [%s]", res, esp_err_to_name(res));
         break;
     case WIFI_EVENT_STA_CONNECTED:
-        ESP_LOGI(TAG_wifi, "WiFi connected to '%s'", sys_settings.wifi.sta.ssid);
+        ESP_LOGI(TAG, "WiFi connected to '%s'", sys_settings.wifi.sta.ssid);
         set_ip_info();
-        vTaskSuspend(myTaskHandle);
         break;
     case WIFI_EVENT_STA_DISCONNECTED:
-        if (s_retry_num < 2 && event_base == WIFI_EVENT)
-        {
-            s_retry_num++;
-            ESP_LOGI(TAG_wifi, "WiFi disconnected, reconnecting...");
-            bus_send_event(EVENT_NETWORK_DOWN, NULL, 0);
-            if ((res = esp_wifi_connect()) != ESP_OK)
-            {
-                ESP_LOGE(TAG_wifi, "WiFi error %d [%s]", res, esp_err_to_name(res));
-            }
-        }
-        else
-        {
-            vTaskResume(myTaskHandle);
-
-            ESP_LOGI(TAG_wifi, "Starting AP");
-            //  ESP_ERROR_CHECK(esp_wifi_stop());
-            //  ESP_ERROR_CHECK(esp_wifi_deinit());
-            ESP_ERROR_CHECK(esp_wifi_set_mode(WIFI_MODE_AP));
-            ESP_ERROR_CHECK(esp_wifi_start());
-        }
+        ESP_LOGI(TAG, "WiFi disconnected, reconnecting...");
+        bus_send_event(EVENT_NETWORK_DOWN, NULL, 0);
+        if ((res = esp_wifi_connect()) != ESP_OK)
+            ESP_LOGE(TAG, "WiFi error %d [%s]", res, esp_err_to_name(res));
         break;
     default:
         break;
@@ -124,15 +104,15 @@ static void ip_handler(void *arg, esp_event_base_t event_base, int32_t event_id,
     switch (event_id)
     {
     case IP_EVENT_STA_GOT_IP:
-        ESP_LOGI(TAG_wifi, "WiFi got IP address");
+        ESP_LOGI(TAG, "WiFi got IP address");
         log_ip_info();
         bus_send_event(EVENT_NETWORK_UP, NULL, 0);
         break;
     case IP_EVENT_STA_LOST_IP:
-        ESP_LOGI(TAG_wifi, "WiFi lost IP address, reconnecting");
+        ESP_LOGI(TAG, "WiFi lost IP address, reconnecting");
         bus_send_event(EVENT_NETWORK_DOWN, NULL, 0);
         if ((res = esp_wifi_connect()) != ESP_OK)
-            ESP_LOGE(TAG_wifi, "WiFi error %d [%s]", res, esp_err_to_name(res));
+            ESP_LOGE(TAG, "WiFi error %d [%s]", res, esp_err_to_name(res));
         break;
     default:
         break;
@@ -141,7 +121,7 @@ static void ip_handler(void *arg, esp_event_base_t event_base, int32_t event_id,
 
 static esp_err_t init_ap()
 {
-    ESP_LOGI(TAG_wifi, "Starting WiFi in access point mode");
+    ESP_LOGI(TAG, "Starting WiFi in access point mode");
 
     // create default interface
     iface = esp_netif_create_default_wifi_ap();
@@ -160,12 +140,12 @@ static esp_err_t init_ap()
     wifi_cfg.ap.authmode = sys_settings.wifi.ap.authmode;
     wifi_cfg.ap.channel = sys_settings.wifi.ap.channel;
 
-    ESP_LOGI(TAG_wifi, "WiFi access point settings:");
-    ESP_LOGI(TAG_wifi, "--------------------------------------------------");
-    ESP_LOGI(TAG_wifi, "SSID: %s", wifi_cfg.ap.ssid);
-    ESP_LOGI(TAG_wifi, "Channel: %d", wifi_cfg.ap.channel);
-    ESP_LOGI(TAG_wifi, "Auth mode: %s", wifi_cfg.ap.authmode == WIFI_AUTH_OPEN ? "Open" : "WPA2/PSK");
-    ESP_LOGI(TAG_wifi, "--------------------------------------------------");
+    ESP_LOGI(TAG, "WiFi access point settings:");
+    ESP_LOGI(TAG, "--------------------------------------------------");
+    ESP_LOGI(TAG, "SSID: %s", wifi_cfg.ap.ssid);
+    ESP_LOGI(TAG, "Channel: %d", wifi_cfg.ap.channel);
+    ESP_LOGI(TAG, "Auth mode: %s", wifi_cfg.ap.authmode == WIFI_AUTH_OPEN ? "Open" : "WPA2/PSK");
+    ESP_LOGI(TAG, "--------------------------------------------------");
 
     CHECK(esp_wifi_set_mode(WIFI_MODE_AP));
     CHECK(esp_wifi_set_config(WIFI_IF_AP, &wifi_cfg));
@@ -176,7 +156,7 @@ static esp_err_t init_ap()
 
 static esp_err_t init_sta()
 {
-    ESP_LOGI(TAG_wifi, "Starting WiFi in station mode, connecting to '%s'", sys_settings.wifi.sta.ssid);
+    ESP_LOGI(TAG, "Starting WiFi in station mode, connecting to '%s'", sys_settings.wifi.sta.ssid);
 
     iface = esp_netif_create_default_wifi_sta();
     CHECK(esp_netif_set_hostname(iface, APP_NAME));
@@ -193,10 +173,10 @@ static esp_err_t init_sta()
     memcpy(wifi_cfg.sta.password, sys_settings.wifi.sta.password, sizeof(wifi_cfg.sta.password));
     wifi_cfg.sta.threshold.authmode = sys_settings.wifi.sta.threshold.authmode;
 
-    ESP_LOGI(TAG_wifi, "WiFi station settings:");
-    ESP_LOGI(TAG_wifi, "--------------------------------------------------");
-    ESP_LOGI(TAG_wifi, "SSID: %s", wifi_cfg.sta.ssid);
-    ESP_LOGI(TAG_wifi, "--------------------------------------------------");
+    ESP_LOGI(TAG, "WiFi station settings:");
+    ESP_LOGI(TAG, "--------------------------------------------------");
+    ESP_LOGI(TAG, "SSID: %s", wifi_cfg.sta.ssid);
+    ESP_LOGI(TAG, "--------------------------------------------------");
 
     CHECK(esp_wifi_set_mode(WIFI_MODE_STA));
     CHECK(esp_wifi_set_config(WIFI_IF_STA, &wifi_cfg));
@@ -204,18 +184,7 @@ static esp_err_t init_sta()
 
     return ESP_OK;
 }
-void wifi_AP_task(void *arg)
-{
-    esp_err_t res;
-    while (1)
-    {
-        vTaskDelay(180000 / portTICK_PERIOD_MS);
-        s_retry_num = 0;
-        ESP_ERROR_CHECK(esp_wifi_set_mode(WIFI_MODE_STA));
-        if ((res = esp_wifi_connect()) != ESP_OK)
-            ESP_LOGE(TAG_wifi, "WiFi error %d [%s]", res, esp_err_to_name(res));
-    }
-}
+
 esp_err_t wifi_init()
 {
     CHECK(esp_netif_init());
@@ -226,7 +195,5 @@ esp_err_t wifi_init()
     else
         CHECK(init_sta());
 
-    //  xTaskCreate(wifi_AP_task, "wifi_AP_task", 4096, NULL, 5, &myTaskHandle);
-    vTaskSuspend(myTaskHandle);
     return ESP_OK;
 }

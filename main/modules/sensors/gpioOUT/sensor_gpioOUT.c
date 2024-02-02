@@ -84,7 +84,7 @@ void sensor_gpioOUT(cJSON *sensor_json, int zigbee_init)
                         // Удаляем ключ если сохранение запрещено в конфиге
                         EraseKeyNVS(id);
                         gpio_set_level(pin, 0);
-                        ESP_LOGI(TAG, "RELE %d sets default value %s", pin, 0 ? "On" : "Off");
+                        ESP_LOGI(TAG, "RELE %d set %s", pin, 0 ? "On" : "Off");
                         if (zigbee_init == 1)
                         {
                             send_data(0, ep, cluster);
@@ -93,7 +93,7 @@ void sensor_gpioOUT(cJSON *sensor_json, int zigbee_init)
                     else
                     {
                         gpio_set_level(pin, value_from_nvs);
-                        ESP_LOGI(TAG, "RELE %d sets to %s", pin, value_from_nvs ? "On" : "Off");
+                        ESP_LOGI(TAG, "RELE %d set %s", pin, value_from_nvs ? "On" : "Off");
                         if (zigbee_init == 1)
                         {
                             send_data(value_from_nvs, ep, cluster);

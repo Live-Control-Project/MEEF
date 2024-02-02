@@ -25,7 +25,8 @@ inline static void process_button_event(event_t *e)
             ESP_ERROR_CHECK(effects_reset());
             ESP_ERROR_CHECK(sys_settings_reset_nvs());
             ESP_ERROR_CHECK(vol_settings_reset());
-            esp_restart();
+            esp_zb_factory_reset();
+            //  esp_restart();
         }
         return;
     }
@@ -82,7 +83,8 @@ static void main_loop(void *arg)
             ESP_LOGI(TAG, "Button event %d", e.type);
             if (e.type == 2)
             {
-                //   writeJSONtoFile("config.json", &sys_settings);
+                // esp_zb_factory_reset();
+                // writeJSONtoFile("config.json", &sys_settings);
             }
             break;
         case EVENT_NETWORK_UP:
@@ -92,7 +94,11 @@ static void main_loop(void *arg)
             if (err != ESP_OK)
                 ESP_LOGW(TAG, "Error starting HTTPD: %d (%s)", err, esp_err_to_name(err));
 
-            // zigbee_init();
+            // Инициализация zigbee после старта WiFi
+            if (sys_settings.zigbee.zigbee_present && sys_settings.zigbee.zigbee_enabled)
+            {
+                zigbee_init();
+            }
 
             break;
 
@@ -226,9 +232,9 @@ void app_main()
     // Load volatile settings
     ESP_ERROR_CHECK(vol_settings_load());
     // Load effect parameters
-    ESP_ERROR_CHECK(effects_init());
+    // ESP_ERROR_CHECK(effects_init());
     // Init surface
-    ESP_ERROR_CHECK(surface_init());
+    // ESP_ERROR_CHECK(surface_init());
 
     // Initialize bus
     ESP_ERROR_CHECK(bus_init());

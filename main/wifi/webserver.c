@@ -60,7 +60,7 @@ esp_err_t webserver_restart()
     CHECK(httpd_start(&server, &config));
     CHECK(init());
 
-    ESP_LOGI(TAG, "HTTPD started on port %d, free mem: %lu bytes", config.server_port, esp_get_free_heap_size());
+    ESP_LOGI(TAG, "HTTPD started on port %d, free mem: %lu Kb", config.server_port, esp_get_free_heap_size() / 1024);
 
     return ESP_OK;
 }
