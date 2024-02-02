@@ -53,8 +53,8 @@ dkms.conf
 *.swp
 
 build/
-!build/bundle.css
-!build/bundle.js
+!spiffs_storage/build/
+
 
 sdkconfig.old
 sdkconfig
