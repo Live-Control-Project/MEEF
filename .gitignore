@@ -53,6 +53,9 @@ dkms.conf
 *.swp
 
 build/
+!build/bundle.css
+!build/bundle.js
+
 sdkconfig.old
 sdkconfig
 /.cproject
@@ -64,5 +67,4 @@ sdkconfig
 /.vscode/
 /.idea/
 /cmake-build-debug/
-/libs
 /managed_components

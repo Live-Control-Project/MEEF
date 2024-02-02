@@ -98,6 +98,8 @@ static void main_loop(void *arg)
             if (sys_settings.zigbee.zigbee_present && sys_settings.zigbee.zigbee_enabled)
             {
                 zigbee_init();
+                // Инициализация датчиков \ сенсоров
+                sensor_init();
             }
 
             break;
@@ -249,9 +251,6 @@ void app_main()
     // читаем конфигурацию из storage
     load_element_json(base_path);
 
-    // Инициализация датчиков \ сенсоров
-    // sensor_init();
-
     // Start WIFI
     if (sys_settings.wifi.wifi_enabled && sys_settings.wifi.wifi_present)
     {
@@ -263,6 +262,8 @@ void app_main()
     if (!sys_settings.wifi.wifi_enabled && sys_settings.zigbee.zigbee_present && sys_settings.zigbee.zigbee_enabled)
     {
         zigbee_init();
+        // Инициализация датчиков \ сенсоров
+        sensor_init();
     }
 
     ESP_LOGI(TAG, "[APP] Free memory: %" PRIu32 " Kb", esp_get_free_heap_size() / 1024);
