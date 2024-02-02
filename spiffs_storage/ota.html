@@ -1,0 +1,42 @@
+<script>
+    function upload_firmware() {
+        var fileInput = document.getElementById("choose_firmware").files;
+    
+        if (fileInput.length == 0) {
+            alert("No file selected!");
+        } else {
+            document.getElementById("choose_firmware").disabled = true;
+            document.getElementById("upload_firmware").disabled = true;
+    
+            var file = fileInput[0];
+            var xhttp = new XMLHttpRequest();
+            xhttp.onreadystatechange = function() {
+                if (xhttp.readyState == 4) {
+                    if (xhttp.status == 200) {
+                        document.open();
+                        document.write(xhttp.responseText);
+                        document.close();
+                    } else if (xhttp.status == 0) {
+                        alert("Server closed the connection abruptly!");
+                        location.reload()
+                    } else {
+                        alert(xhttp.status + " Error!\n" + xhttp.responseText);
+                        location.reload()
+                    }
+                }
+            };
+            xhttp.open("POST", "/upload_firmware", true);
+            xhttp.send(file);
+        }
+    }
+    </script>
+    </head>
+    
+    
+    <body>
+    <h2>Firmware upgrade</h2>
+    
+    <input id="choose_firmware" type="file" accept=".bin,.bin.gz">
+    <button id="upload_firmware" type="button" onclick="upload_firmware()">Upload</button>
+    
+    </body>

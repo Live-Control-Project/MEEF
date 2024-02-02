@@ -1,0 +1,1 @@
+void sensor_bmp280(const char *sensor, const char *cluster, int EP, const TaskParameters *taskParams);
