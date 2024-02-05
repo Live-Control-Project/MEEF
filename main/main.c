@@ -83,7 +83,7 @@ static void main_loop(void *arg)
             ESP_LOGI(TAG, "Button event %d", e.type);
             if (e.type == 2)
             {
-                // esp_zb_factory_reset();
+                esp_zb_factory_reset();
                 // writeJSONtoFile("config.json", &sys_settings);
             }
             break;
