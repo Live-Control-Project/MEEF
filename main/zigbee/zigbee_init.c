@@ -19,7 +19,7 @@ extern cJSON *sensor_json;
 extern cJSON *settings_json;
 /*------ Clobal definitions -----------*/
 static char manufacturer[16], model[16], firmware_version[16];
-bool time_updated = false, connected = false;
+bool time_updated = false;
 char strftime_buf[64];
 static const char *TAG_zigbee = "ZIGBEE";
 
@@ -253,14 +253,15 @@ void esp_zb_app_signal_handler(esp_zb_app_signal_t *signal_struct)
     case ESP_ZB_BDB_SIGNAL_STEERING:
         if (err_status != ESP_OK)
         {
-            connected = false;
+
+            sys_settings.zigbee.zigbee_conected = false;
             ESP_LOGW(TAG_zigbee, "Stack %s failure with %s status, steering", esp_zb_zdo_signal_to_string(sig_type), esp_err_to_name(err_status));
             esp_zb_scheduler_alarm((esp_zb_callback_t)bdb_start_top_level_commissioning_cb, ESP_ZB_BDB_MODE_NETWORK_STEERING, 1000);
         }
         else
         {
             /* device auto start successfully and on a formed network */
-            connected = true;
+            sys_settings.zigbee.zigbee_conected = true;
             esp_zb_ieee_addr_t extended_pan_id;
             esp_zb_get_extended_pan_id(extended_pan_id);
             ESP_LOGI(TAG_zigbee, "Joined network successfully (Extended PAN ID: %02x:%02x:%02x:%02x:%02x:%02x:%02x:%02x, PAN ID: 0x%04hx, Channel:%d)",
@@ -274,6 +275,7 @@ void esp_zb_app_signal_handler(esp_zb_app_signal_t *signal_struct)
         break;
     case ESP_ZB_ZDO_SIGNAL_LEAVE:
         leave_params = (esp_zb_zdo_signal_leave_params_t *)esp_zb_app_signal_get_params(p_sg_p);
+        sys_settings.zigbee.zigbee_conected = false;
         if (leave_params->leave_type == ESP_ZB_NWK_LEAVE_TYPE_RESET)
         {
             ESP_LOGI(TAG_zigbee, "Reset device");

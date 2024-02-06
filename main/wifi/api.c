@@ -17,12 +17,15 @@
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
 #include "cJSON.h"
-
 #include "api.h"
 #include <led_strip.h>
 #include <lwip/ip_addr.h>
 #include <esp_ota_ops.h>
 #include "../settings.h"
+
+// Переделать: если только ESP32 без zigbee то не подключать библиотеку
+#include "esp_zigbee_core.h"
+
 #include "../effects/effect.h"
 #include "../effects/surface.h"
 
@@ -990,6 +993,10 @@ static const httpd_uri_t route_post_settings_leds = {
 static esp_err_t get_reboot(httpd_req_t *req)
 {
     (void)req;
+    if (sys_settings.zigbee.zigbee_present)
+    {
+        esp_zb_factory_reset();
+    }
     esp_restart();
 
     return ESP_OK; // dummy

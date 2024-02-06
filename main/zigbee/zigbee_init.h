@@ -1,4 +1,14 @@
+#include "esp_log.h"
+#include "freertos/FreeRTOS.h"
+#include "freertos/task.h"
+#include "ha/esp_zigbee_ha_standard.h"
+#include "ha/zb_ha_device_config.h"
+#include "zcl/esp_zigbee_zcl_power_config.h"
+#include <string.h>
 #include "esp_zigbee_core.h"
+#include "esp_sleep.h"
+#include "esp_timer.h"
+#include "time.h"
 
 /* Zigbee configuration */
 #define MAX_CHILDREN 10                 /* the max amount of connected devices */
@@ -18,6 +28,19 @@
 #define MODEL_NAME "zigbee DIY"
 #define FIRMWARE_VERSION "ver-0.4"
 
+// -- EP-- //
+#define ED_AGING_TIMEOUT ESP_ZB_ED_AGING_TIMEOUT_64MIN
+#define ED_KEEP_ALIVE 4000 /* 3000 millisecond */
+#define ESP_ZB_ZED_CONFIG()                               \
+    {                                                     \
+        .esp_zb_role = ESP_ZB_DEVICE_TYPE_ED,             \
+        .install_code_policy = INSTALLCODE_POLICY_ENABLE, \
+        .nwk_cfg.zed_cfg = {                              \
+            .ed_timeout = ED_AGING_TIMEOUT,               \
+            .keep_alive = ED_KEEP_ALIVE,                  \
+        },                                                \
+    }
+// -- router -- //
 #define ESP_ZB_ZR_CONFIG()                                \
     {                                                     \
         .esp_zb_role = ESP_ZB_DEVICE_TYPE_ROUTER,         \
