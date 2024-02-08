@@ -6,7 +6,6 @@
 #include "zcl/esp_zigbee_zcl_power_config.h"
 #include <string.h>
 #include "esp_zigbee_core.h"
-#include "esp_sleep.h"
 #include "esp_timer.h"
 #include "time.h"
 

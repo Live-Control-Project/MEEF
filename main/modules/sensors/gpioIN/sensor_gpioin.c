@@ -4,7 +4,7 @@
 #include "esp_err.h"
 #include "cJSON.h"
 #include "string.h"
-#include "../sensor_init.h"
+#include "../../sensor_init.h"
 #include <button.h>
 #include "sensor_gpioin.h"
 #include "utils/send_data.h"

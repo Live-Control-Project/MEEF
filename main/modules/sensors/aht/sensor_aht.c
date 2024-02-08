@@ -6,7 +6,7 @@
 #include "cJSON.h"
 #include "string.h"
 #include "../../../send_data.h"
-#include "../sensor_init.h"
+#include "../../sensor_init.h"
 #include "sensor_aht.h"
 #include "aht.h"
 

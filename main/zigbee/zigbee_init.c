@@ -1,7 +1,7 @@
 #include "zigbee_init.h"
 #include "zcl/esp_zigbee_zcl_common.h"
 #include "esp_check.h"
-#include "esp_err.h" TAG_zigbee
+#include "esp_err.h"
 #include "esp_log.h"
 #include "nvs_flash.h"
 #include "string.h"
@@ -12,6 +12,7 @@
 #include <time.h>
 #include <sys/time.h>
 #include "cJSON.h"
+#include "../utils/bus.h"
 #include "../settings.h"
 #include "../modules/sensors/gpioOUT/sensor_gpioOUT.h"
 
@@ -26,6 +27,9 @@ static const char *TAG_zigbee = "ZIGBEE";
 // static light_data_t light_data;
 
 static uint16_t color_capabilities = 0x0009;
+// Инициализируем состояние батареи для батарейных девайсов
+RTC_DATA_ATTR uint8_t lastBatteryPercentageRemaining = 0x8C;
+
 #if !defined CONFIG_ZB_ZCZR
 #error Define ZB_ZCZR in idf.py menuconfig to compile light (Router) source code.
 #endif
@@ -248,6 +252,10 @@ void esp_zb_app_signal_handler(esp_zb_app_signal_t *signal_struct)
     esp_zb_zdo_signal_leave_params_t *leave_params = NULL;
     switch (sig_type)
     {
+    case ESP_ZB_ZDO_SIGNAL_SKIP_STARTUP:
+        ESP_LOGI(TAG, "Zigbee stack initialized");
+        esp_zb_bdb_start_top_level_commissioning(ESP_ZB_BDB_MODE_INITIALIZATION);
+        break;
     case ESP_ZB_BDB_SIGNAL_DEVICE_FIRST_START:
     case ESP_ZB_BDB_SIGNAL_DEVICE_REBOOT:
     case ESP_ZB_BDB_SIGNAL_STEERING:
@@ -269,6 +277,8 @@ void esp_zb_app_signal_handler(esp_zb_app_signal_t *signal_struct)
                      extended_pan_id[3], extended_pan_id[2], extended_pan_id[1], extended_pan_id[0],
                      esp_zb_get_pan_id(), esp_zb_get_current_channel());
             read_server_time();
+
+            bus_send_event(EVENT_ZIGBEE_UP, NULL, 0);
             // Восстанавливаем состояние RELE и публикуем в zigbee cеть
             sensor_gpioOUT(sensor_json, 1);
         }
@@ -541,13 +551,49 @@ void createAttributes(esp_zb_cluster_list_t *esp_zb_cluster_list, char *cluster,
         esp_zb_attribute_list_t *esp_zb_ias_zone_cluster = esp_zb_ias_zone_cluster_create(&contact_switch_cfg);
         esp_zb_cluster_list_add_ias_zone_cluster(esp_zb_cluster_list, esp_zb_ias_zone_cluster, ESP_ZB_ZCL_CLUSTER_SERVER_ROLE);
     }
+    else if (strcmp(cluster, "battary") == 0)
+    {
+        //***********************BATTEY CLUSTER***************************
+        esp_zb_power_config_cluster_cfg_t power_cfg = {0};
+        uint8_t batteryRatedVoltage = 90;
+        uint8_t batteryMinVoltage = 70;
+        uint8_t batteryQuantity = 1;
+        uint8_t batterySize = 0x02;
+        uint16_t batteryAhrRating = 50000;
+        uint8_t batteryAlarmMask = 0;
+        uint8_t batteryVoltage = 90;
+        esp_zb_attribute_list_t *esp_zb_power_cluster = esp_zb_power_config_cluster_create(&power_cfg);
+        esp_zb_power_config_cluster_add_attr(esp_zb_power_cluster, ESP_ZB_ZCL_ATTR_POWER_CONFIG_BATTERY_VOLTAGE_ID, &batteryVoltage);
+        esp_zb_power_config_cluster_add_attr(esp_zb_power_cluster, ESP_ZB_ZCL_ATTR_POWER_CONFIG_BATTERY_SIZE_ID, &batterySize);
+        esp_zb_power_config_cluster_add_attr(esp_zb_power_cluster, ESP_ZB_ZCL_ATTR_POWER_CONFIG_BATTERY_QUANTITY_ID, &batteryQuantity);
+        esp_zb_power_config_cluster_add_attr(esp_zb_power_cluster, ESP_ZB_ZCL_ATTR_POWER_CONFIG_BATTERY_RATED_VOLTAGE_ID, &batteryRatedVoltage);
+        esp_zb_power_config_cluster_add_attr(esp_zb_power_cluster, ESP_ZB_ZCL_ATTR_POWER_CONFIG_BATTERY_ALARM_MASK_ID, &batteryAlarmMask);
+        esp_zb_power_config_cluster_add_attr(esp_zb_power_cluster, ESP_ZB_ZCL_ATTR_POWER_CONFIG_BATTERY_VOLTAGE_MIN_THRESHOLD_ID, &batteryMinVoltage);
+        esp_zb_power_config_cluster_add_attr(esp_zb_power_cluster, ESP_ZB_ZCL_ATTR_POWER_CONFIG_BATTERY_A_HR_RATING_ID, &batteryAhrRating);
+        esp_zb_power_config_cluster_add_attr(esp_zb_power_cluster, ESP_ZB_ZCL_ATTR_POWER_CONFIG_BATTERY_PERCENTAGE_REMAINING_ID, &lastBatteryPercentageRemaining);
+        // remove 8 first cluster: shift the pointer to the 8th cluster
+        for (int i = 0; i < 7; i++)
+        {
+            esp_zb_power_cluster = esp_zb_power_cluster->next;
+        }
+        esp_zb_cluster_list_add_power_config_cluster(esp_zb_cluster_list, esp_zb_power_cluster, ESP_ZB_ZCL_CLUSTER_SERVER_ROLE);
+    }
 }
 
 static void esp_zb_task(void *pvParameters)
 {
     /* initialize Zigbee stack */
-    esp_zb_cfg_t zb_nwk_cfg = ESP_ZB_ZR_CONFIG();
-    esp_zb_init(&zb_nwk_cfg);
+    if (sys_settings.zigbee.zigbee_router)
+    {
+        esp_zb_cfg_t zb_nwk_cfg = ESP_ZB_ZR_CONFIG();
+        esp_zb_init(&zb_nwk_cfg);
+    }
+    else
+    {
+        esp_zb_cfg_t zb_nwk_cfg = ESP_ZB_ZED_CONFIG();
+        esp_zb_init(&zb_nwk_cfg);
+    }
+
     if (strcmp((char *)sys_settings.zigbee.manufactuer, "") != 0)
     {
         ESP_LOGI(TAG_zigbee, "Manufactuer Name: %s", sys_settings.zigbee.manufactuer);
@@ -625,8 +671,11 @@ static void esp_zb_task(void *pvParameters)
     esp_zb_basic_cluster_add_attr(esp_zb_basic_cluster, ESP_ZB_ZCL_ATTR_BASIC_MANUFACTURER_NAME_ID, manufacturer);
     esp_zb_basic_cluster_add_attr(esp_zb_basic_cluster, ESP_ZB_ZCL_ATTR_BASIC_MODEL_IDENTIFIER_ID, model);
     esp_zb_basic_cluster_add_attr(esp_zb_basic_cluster, ESP_ZB_ZCL_ATTR_BASIC_SW_BUILD_ID, firmware_version);
-    //  esp_zb_basic_cluster_add_attr(esp_zb_basic_cluster, ESP_ZB_ZCL_ATTR_BASIC_POWER_SOURCE_ID, &dc_power_source); /**< DC source. */
-
+    // Если устройство питается от сети, то указываем это явно
+    if (sys_settings.zigbee.zigbee_dc_power)
+    {
+        esp_zb_basic_cluster_add_attr(esp_zb_basic_cluster, ESP_ZB_ZCL_ATTR_BASIC_POWER_SOURCE_ID, &dc_power_source); /**< DC source. */
+    }
     /* identify cluster create with fully customized */
     uint8_t identyfi_id;
     identyfi_id = 0;
@@ -724,6 +773,7 @@ static void esp_zb_task(void *pvParameters)
     esp_zb_set_primary_network_channel_set(ESP_ZB_PRIMARY_CHANNEL_MASK);
     ESP_ERROR_CHECK(esp_zb_start(true));
     esp_zb_main_loop_iteration();
+    bus_send_event(EVENT_ZIGBEE_START, NULL, 0);
 }
 
 void zigbee_init(void)

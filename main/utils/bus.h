@@ -3,14 +3,19 @@
 
 #include "common.h"
 
-typedef enum {
+typedef enum
+{
     EVENT_NETWORK_UP = 0,
     EVENT_NETWORK_DOWN,
     EVENT_BUTTON_PRESSED,
     EVENT_BUTTON_PRESSED_LONG,
     EVENT_BUTTON_RELEASED,
     EVENT_BUTTON_CLICKED,
-    EVENT_TIMER
+    EVENT_TIMER,
+    EVENT_ZIGBEE_UP,
+    EVENT_ZIGBEE_DOWN,
+    EVENT_ZIGBEE_START,
+    EVENT_ZIGBEE_CAN_SLEEP
 } event_type_t;
 
 typedef struct

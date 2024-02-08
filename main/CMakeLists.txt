@@ -20,14 +20,17 @@ idf_component_register(
 		utils/json.c
 		utils/send_data.c
 		zigbee/zigbee_init.c
-		modules/sensors/sensor_init.c
+		modules/sensor_init.c
 		modules/sensors/gpioOUT/sensor_gpioOUT.c
 		modules/sensors/gpioIN/sensor_gpioin.c
 		modules/sensors/_example/sensor_example.c
 		modules/sensors/aht/sensor_aht.c
 		modules/sensors/dht/sensor_dht.c
 		modules/sensors/bmp280/sensor_bmp280.c
-		
+
+		modules/virtual/battary/battary.c
+		modules/virtual/deepsleep/deepsleep.c
+		modules/virtual/lightsleep/lightsleep.c
 
 		effects/crazybees.c
 		effects/dna.c

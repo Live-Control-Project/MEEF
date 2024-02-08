@@ -12,5 +12,9 @@ typedef struct
     char *param_cluster;
     char *param_id;
     char *param_sensor_type;
+    int param_before_sleep;
+    int param_sleep_length;
+    int param_before_long_sleep;
+    int param_long_sleep_length;
 } TaskParameters;
 void sensor_init(void);
