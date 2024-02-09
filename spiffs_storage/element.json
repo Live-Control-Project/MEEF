@@ -125,6 +125,7 @@
     "EP": 1
   },
   {
+    "num": 9,
     "name": "deepsleep",
     "sensor": "deepsleep",
     "id": "deepsleep",
