@@ -92,10 +92,10 @@ void sensor_init(void)
             {
                 deep_sleep(sensor, cluster, EP, &taskParams);
             }
-            else if (strcmp(sensor, "lightsleep") == 0)
-            {
-                light_sleep(sensor, cluster, EP, &taskParams);
-            }
+            //    else if (strcmp(sensor, "lightsleep") == 0)
+            //    {
+            //        light_sleep(sensor, cluster, EP, &taskParams);
+            //    }
         }
         item = item->next;
     }

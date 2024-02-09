@@ -30,7 +30,7 @@ idf_component_register(
 
 		modules/virtual/battary/battary.c
 		modules/virtual/deepsleep/deepsleep.c
-		modules/virtual/lightsleep/lightsleep.c
+		#modules/virtual/lightsleep/lightsleep.c
 
 		effects/crazybees.c
 		effects/dna.c
