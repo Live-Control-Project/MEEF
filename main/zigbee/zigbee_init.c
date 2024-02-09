@@ -1,7 +1,7 @@
 #include "zigbee_init.h"
 #include "zcl/esp_zigbee_zcl_common.h"
 #include "esp_check.h"
-#include "esp_err.h" TAG_zigbee
+#include "esp_err.h"
 #include "esp_log.h"
 #include "nvs_flash.h"
 #include "string.h"
@@ -12,20 +12,27 @@
 #include <time.h>
 #include <sys/time.h>
 #include "cJSON.h"
+#include "../utils/bus.h"
 #include "../settings.h"
 #include "../modules/sensors/gpioOUT/sensor_gpioOUT.h"
-
+#ifdef CONFIG_PM_ENABLE
+#include "esp_pm.h"
+#include "esp_private/esp_clk.h"
+#endif
 extern cJSON *sensor_json;
 extern cJSON *settings_json;
 /*------ Clobal definitions -----------*/
 static char manufacturer[16], model[16], firmware_version[16];
-bool time_updated = false, connected = false;
+bool time_updated = false;
 char strftime_buf[64];
 static const char *TAG_zigbee = "ZIGBEE";
 
 // static light_data_t light_data;
 
 static uint16_t color_capabilities = 0x0009;
+// Инициализируем состояние батареи для батарейных девайсов
+RTC_DATA_ATTR uint8_t lastBatteryPercentageRemaining = 0x8C;
+
 #if !defined CONFIG_ZB_ZCZR
 #error Define ZB_ZCZR in idf.py menuconfig to compile light (Router) source code.
 #endif
@@ -248,19 +255,23 @@ void esp_zb_app_signal_handler(esp_zb_app_signal_t *signal_struct)
     esp_zb_zdo_signal_leave_params_t *leave_params = NULL;
     switch (sig_type)
     {
+    case ESP_ZB_ZDO_SIGNAL_SKIP_STARTUP:
+        ESP_LOGI(TAG, "Zigbee stack initialized");
+        esp_zb_bdb_start_top_level_commissioning(ESP_ZB_BDB_MODE_INITIALIZATION);
+        break;
     case ESP_ZB_BDB_SIGNAL_DEVICE_FIRST_START:
     case ESP_ZB_BDB_SIGNAL_DEVICE_REBOOT:
     case ESP_ZB_BDB_SIGNAL_STEERING:
         if (err_status != ESP_OK)
         {
-            connected = false;
+            sys_settings.zigbee.zigbee_conected = false;
             ESP_LOGW(TAG_zigbee, "Stack %s failure with %s status, steering", esp_zb_zdo_signal_to_string(sig_type), esp_err_to_name(err_status));
             esp_zb_scheduler_alarm((esp_zb_callback_t)bdb_start_top_level_commissioning_cb, ESP_ZB_BDB_MODE_NETWORK_STEERING, 1000);
         }
         else
         {
             /* device auto start successfully and on a formed network */
-            connected = true;
+            sys_settings.zigbee.zigbee_conected = true;
             esp_zb_ieee_addr_t extended_pan_id;
             esp_zb_get_extended_pan_id(extended_pan_id);
             ESP_LOGI(TAG_zigbee, "Joined network successfully (Extended PAN ID: %02x:%02x:%02x:%02x:%02x:%02x:%02x:%02x, PAN ID: 0x%04hx, Channel:%d)",
@@ -268,16 +279,26 @@ void esp_zb_app_signal_handler(esp_zb_app_signal_t *signal_struct)
                      extended_pan_id[3], extended_pan_id[2], extended_pan_id[1], extended_pan_id[0],
                      esp_zb_get_pan_id(), esp_zb_get_current_channel());
             read_server_time();
+
+            bus_send_event(EVENT_ZIGBEE_UP, NULL, 0);
             // Восстанавливаем состояние RELE и публикуем в zigbee cеть
             sensor_gpioOUT(sensor_json, 1);
         }
         break;
     case ESP_ZB_ZDO_SIGNAL_LEAVE:
         leave_params = (esp_zb_zdo_signal_leave_params_t *)esp_zb_app_signal_get_params(p_sg_p);
+        sys_settings.zigbee.zigbee_conected = false;
         if (leave_params->leave_type == ESP_ZB_NWK_LEAVE_TYPE_RESET)
         {
             ESP_LOGI(TAG_zigbee, "Reset device");
             esp_zb_factory_reset();
+        }
+        break;
+    case ESP_ZB_COMMON_SIGNAL_CAN_SLEEP:
+        if (sys_settings.zigbee.zigbee_conected == true && sys_settings.zigbee.zigbee_light_sleep == true)
+        {
+            ESP_LOGI(TAG, "Zigbee can sleep");
+            esp_zb_sleep_now();
         }
         break;
     default:
@@ -539,13 +560,54 @@ void createAttributes(esp_zb_cluster_list_t *esp_zb_cluster_list, char *cluster,
         esp_zb_attribute_list_t *esp_zb_ias_zone_cluster = esp_zb_ias_zone_cluster_create(&contact_switch_cfg);
         esp_zb_cluster_list_add_ias_zone_cluster(esp_zb_cluster_list, esp_zb_ias_zone_cluster, ESP_ZB_ZCL_CLUSTER_SERVER_ROLE);
     }
+    else if (strcmp(cluster, "battary") == 0)
+    {
+        //***********************BATTEY CLUSTER***************************
+        esp_zb_power_config_cluster_cfg_t power_cfg = {0};
+        uint8_t batteryRatedVoltage = 90;
+        uint8_t batteryMinVoltage = 70;
+        uint8_t batteryQuantity = 1;
+        uint8_t batterySize = 0x02;
+        uint16_t batteryAhrRating = 50000;
+        uint8_t batteryAlarmMask = 0;
+        uint8_t batteryVoltage = 90;
+        esp_zb_attribute_list_t *esp_zb_power_cluster = esp_zb_power_config_cluster_create(&power_cfg);
+        esp_zb_power_config_cluster_add_attr(esp_zb_power_cluster, ESP_ZB_ZCL_ATTR_POWER_CONFIG_BATTERY_VOLTAGE_ID, &batteryVoltage);
+        esp_zb_power_config_cluster_add_attr(esp_zb_power_cluster, ESP_ZB_ZCL_ATTR_POWER_CONFIG_BATTERY_SIZE_ID, &batterySize);
+        esp_zb_power_config_cluster_add_attr(esp_zb_power_cluster, ESP_ZB_ZCL_ATTR_POWER_CONFIG_BATTERY_QUANTITY_ID, &batteryQuantity);
+        esp_zb_power_config_cluster_add_attr(esp_zb_power_cluster, ESP_ZB_ZCL_ATTR_POWER_CONFIG_BATTERY_RATED_VOLTAGE_ID, &batteryRatedVoltage);
+        esp_zb_power_config_cluster_add_attr(esp_zb_power_cluster, ESP_ZB_ZCL_ATTR_POWER_CONFIG_BATTERY_ALARM_MASK_ID, &batteryAlarmMask);
+        esp_zb_power_config_cluster_add_attr(esp_zb_power_cluster, ESP_ZB_ZCL_ATTR_POWER_CONFIG_BATTERY_VOLTAGE_MIN_THRESHOLD_ID, &batteryMinVoltage);
+        esp_zb_power_config_cluster_add_attr(esp_zb_power_cluster, ESP_ZB_ZCL_ATTR_POWER_CONFIG_BATTERY_A_HR_RATING_ID, &batteryAhrRating);
+        esp_zb_power_config_cluster_add_attr(esp_zb_power_cluster, ESP_ZB_ZCL_ATTR_POWER_CONFIG_BATTERY_PERCENTAGE_REMAINING_ID, &lastBatteryPercentageRemaining);
+        // remove 8 first cluster: shift the pointer to the 8th cluster
+        for (int i = 0; i < 7; i++)
+        {
+            esp_zb_power_cluster = esp_zb_power_cluster->next;
+        }
+        esp_zb_cluster_list_add_power_config_cluster(esp_zb_cluster_list, esp_zb_power_cluster, ESP_ZB_ZCL_CLUSTER_SERVER_ROLE);
+    }
 }
 
 static void esp_zb_task(void *pvParameters)
 {
+
+    if (sys_settings.zigbee.zigbee_light_sleep == true)
+    {
+        esp_zb_sleep_enable(true);
+    }
     /* initialize Zigbee stack */
-    esp_zb_cfg_t zb_nwk_cfg = ESP_ZB_ZR_CONFIG();
-    esp_zb_init(&zb_nwk_cfg);
+    if (sys_settings.zigbee.zigbee_router)
+    {
+        esp_zb_cfg_t zb_nwk_cfg = ESP_ZB_ZR_CONFIG();
+        esp_zb_init(&zb_nwk_cfg);
+    }
+    else
+    {
+        esp_zb_cfg_t zb_nwk_cfg = ESP_ZB_ZED_CONFIG();
+        esp_zb_init(&zb_nwk_cfg);
+    }
+
     if (strcmp((char *)sys_settings.zigbee.manufactuer, "") != 0)
     {
         ESP_LOGI(TAG_zigbee, "Manufactuer Name: %s", sys_settings.zigbee.manufactuer);
@@ -623,8 +685,11 @@ static void esp_zb_task(void *pvParameters)
     esp_zb_basic_cluster_add_attr(esp_zb_basic_cluster, ESP_ZB_ZCL_ATTR_BASIC_MANUFACTURER_NAME_ID, manufacturer);
     esp_zb_basic_cluster_add_attr(esp_zb_basic_cluster, ESP_ZB_ZCL_ATTR_BASIC_MODEL_IDENTIFIER_ID, model);
     esp_zb_basic_cluster_add_attr(esp_zb_basic_cluster, ESP_ZB_ZCL_ATTR_BASIC_SW_BUILD_ID, firmware_version);
-    esp_zb_basic_cluster_add_attr(esp_zb_basic_cluster, ESP_ZB_ZCL_ATTR_BASIC_POWER_SOURCE_ID, &dc_power_source); /**< DC source. */
-
+    // Если устройство питается от сети, то указываем это явно
+    if (sys_settings.zigbee.zigbee_dc_power)
+    {
+        esp_zb_basic_cluster_add_attr(esp_zb_basic_cluster, ESP_ZB_ZCL_ATTR_BASIC_POWER_SOURCE_ID, &dc_power_source); /**< DC source. */
+    }
     /* identify cluster create with fully customized */
     uint8_t identyfi_id;
     identyfi_id = 0;
@@ -722,30 +787,35 @@ static void esp_zb_task(void *pvParameters)
     esp_zb_set_primary_network_channel_set(ESP_ZB_PRIMARY_CHANNEL_MASK);
     ESP_ERROR_CHECK(esp_zb_start(true));
     esp_zb_main_loop_iteration();
+    bus_send_event(EVENT_ZIGBEE_START, NULL, 0);
 }
-
+static esp_err_t esp_zb_power_save_init(void)
+{
+    esp_err_t rc = ESP_OK;
+#ifdef CONFIG_PM_ENABLE
+    int cur_cpu_freq_mhz = CONFIG_ESP_DEFAULT_CPU_FREQ_MHZ;
+    esp_pm_config_t pm_config = {
+        .max_freq_mhz = cur_cpu_freq_mhz,
+        .min_freq_mhz = cur_cpu_freq_mhz,
+#if CONFIG_FREERTOS_USE_TICKLESS_IDLE
+        .light_sleep_enable = true
+#endif
+    };
+    rc = esp_pm_configure(&pm_config);
+#endif
+    return rc;
+}
 void zigbee_init(void)
 {
-
+    /* esp zigbee light sleep initialization*/
+    if (sys_settings.zigbee.zigbee_light_sleep == true)
+    {
+        ESP_ERROR_CHECK(esp_zb_power_save_init());
+    }
     esp_zb_platform_config_t config = {
         .radio_config = ESP_ZB_DEFAULT_RADIO_CONFIG(),
         .host_config = ESP_ZB_DEFAULT_HOST_CONFIG(),
     };
-    // ESP_ERROR_CHECK(nvs_flash_init());
-    //  ESP_ERROR_CHECK(nvs_flash_erase());
-    /*
-    esp_err_t err = nvs_flash_init();
-    if (err == ESP_ERR_NVS_NO_FREE_PAGES || err == ESP_ERR_NVS_NEW_VERSION_FOUND)
-    {
-        ESP_ERROR_CHECK(nvs_flash_erase());
-        err = nvs_flash_init();
-    }
-    if (err != ESP_OK)
-    {
-        printf("Error (%s) opening NVS handle!\n", esp_err_to_name(err));
-    }
-    */
     ESP_ERROR_CHECK(esp_zb_platform_config(&config));
-
     xTaskCreate(esp_zb_task, "Zigbee_main", 4096, NULL, 6, NULL);
 }

@@ -9,10 +9,11 @@
 #include "utils/bus.h"
 #include "utils/spiffs.h"
 #include "zigbee/zigbee_init.h"
-#include "modules/sensors/sensor_init.h"
+#include "modules/sensor_init.h"
 
 cJSON *sensor_json = NULL;
 cJSON *settings_json = NULL;
+static esp_timer_handle_t s_oneshot_timer;
 
 inline static void process_button_event(event_t *e)
 {
@@ -88,12 +89,11 @@ static void main_loop(void *arg)
             }
             break;
         case EVENT_NETWORK_UP:
+            sys_settings.wifi.wifi_conected = true;
             ESP_LOGI(TAG, "Network is up, restarting HTTPD...");
-
             err = webserver_restart();
             if (err != ESP_OK)
                 ESP_LOGW(TAG, "Error starting HTTPD: %d (%s)", err, esp_err_to_name(err));
-
             // Инициализация zigbee после старта WiFi
             if (sys_settings.zigbee.zigbee_present && sys_settings.zigbee.zigbee_enabled)
             {
@@ -106,6 +106,13 @@ static void main_loop(void *arg)
 
         case EVENT_NETWORK_DOWN:
             ESP_LOGI(TAG, "Network is down");
+            sys_settings.wifi.wifi_conected = false;
+            sys_settings.mqtt.mqtt_conected = false;
+            break;
+
+        case EVENT_ZIGBEE_UP:
+            ESP_LOGI(TAG, "ZIGBEE_UP");
+            sys_settings.zigbee.zigbee_conected = true;
             break;
 
         default:
@@ -225,7 +232,9 @@ void app_main()
 {
     ESP_LOGI(TAG, "Starting " APP_NAME);
     ESP_LOGI(TAG, "Free heap: %lu bytes", esp_get_free_heap_size());
-
+    sys_settings.wifi.wifi_conected = false;
+    sys_settings.zigbee.zigbee_conected = false;
+    sys_settings.mqtt.mqtt_conected = false;
     // Initialize NVS
     ESP_ERROR_CHECK(settings_init());
     // Load system settings from NVS

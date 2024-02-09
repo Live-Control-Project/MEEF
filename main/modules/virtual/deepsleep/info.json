@@ -1,0 +1,34 @@
+{
+    "menuSection": "virtual",
+    "configItem": [
+        {
+            "name": "deepsleep",
+            "sensor": "deepsleep",
+            "id": "deepsleep",
+            "int": 60,
+            "pin": 2,
+            "clasters": [
+                "deepsleep"
+            ],
+            "EP": 1,
+            "descr": "ESP deep sleep"
+        }
+    ],
+    "about": {
+        "authorName": "AVAKS",
+        "authorContact": "https://t.me/avaks",
+        "authorGit": "https://github.com/avaksru",
+        "specialThanks": "",
+        "moduleName": "deepsleep",
+        "moduleVersion": "1.0",
+        "title": "deepsleep",
+        "moduleDesc": "deepsleep",
+        "retInfo": "",
+        "propInfo": {}
+    },
+    "defActive": true,
+    "usedLibs": {
+        "esp32_C6": [],
+        "esp32_H2": []
+    }
+}

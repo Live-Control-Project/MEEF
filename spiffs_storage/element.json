@@ -32,7 +32,7 @@
     "name": "2. 🔌 PLUG / RELE",
     "sensor": "rele",
     "id": "rele",
-    "pin": 4,
+    "pin": 10,
     "saveState": 0,
     "clasters": [
       "on_off"
@@ -107,6 +107,35 @@
       "temperature",
       "humidity",
       "pressure"
+    ],
+    "EP": 1
+  },
+  {
+    "header": "VIRTUAL"
+  },
+  {
+    "num": 8,
+    "name": "claster_battary",
+    "sensor": "battary",
+    "id": "battary",
+    "int": 60,
+    "clasters": [
+      "battary"
+    ],
+    "EP": 1
+  },
+  {
+    "num": 9,
+    "name": "deepsleep",
+    "sensor": "deepsleep",
+    "id": "deepsleep",
+    "pin": 12,
+    "before_sleep": 10,
+    "sleep_length": 180,
+    "before_long_sleep": 40,
+    "long_sleep_length": 3600,
+    "clasters": [
+      "deepsleep"
     ],
     "EP": 1
   }

@@ -3,14 +3,16 @@
 #include "esp_err.h"
 #include "string.h"
 #include "sensor_init.h"
-#include "_example/sensor_example.h"
-#include "gpioIN/sensor_gpioin.h"
-#include "gpioOUT/sensor_gpioOUT.h"
-#include "dht/sensor_dht.h"
+#include "sensors/_example/sensor_example.h"
+#include "sensors/gpioIN/sensor_gpioin.h"
+#include "sensors/gpioOUT/sensor_gpioOUT.h"
+#include "sensors/dht/sensor_dht.h"
 #include "i2cdev.h"
-#include "aht/sensor_aht.h"
-#include "bmp280/sensor_bmp280.h"
-
+#include "sensors/aht/sensor_aht.h"
+#include "sensors/bmp280/sensor_bmp280.h"
+#include "virtual/battary/battary.h"
+#include "virtual/deepsleep/deepsleep.h"
+#include "virtual/lightsleep/lightsleep.h"
 extern cJSON *sensor_json;
 static const char *TAG = "sensor_init";
 
@@ -33,6 +35,12 @@ void sensor_init(void)
         cJSON *I2C_GND_ = cJSON_GetObjectItemCaseSensitive(item, "I2C_GND");
         cJSON *I2C_ADDRESS_ = cJSON_GetObjectItemCaseSensitive(item, "I2C_ADDRESS");
         cJSON *saveState_ = cJSON_GetObjectItemCaseSensitive(item, "saveState");
+        // sleep
+        cJSON *before_sleep_ = cJSON_GetObjectItemCaseSensitive(item, "before_sleep");
+        cJSON *sleep_length_ = cJSON_GetObjectItemCaseSensitive(item, "sleep_length");
+        cJSON *before_long_sleep_ = cJSON_GetObjectItemCaseSensitive(item, "before_long_sleep");
+        cJSON *long_sleep_length_ = cJSON_GetObjectItemCaseSensitive(item, "long_sleep_length");
+
         if (cJSON_IsString(sensor_) && cJSON_IsString(id_) && cJSON_IsNumber(ep_) && cJSON_IsString(cluster_))
         {
             char *cluster = cluster_->valuestring;
@@ -50,6 +58,10 @@ void sensor_init(void)
                 .param_cluster = cJSON_IsString(cluster_) ? cluster_->valuestring : "",
                 .param_id = cJSON_IsString(id_) ? id_->valuestring : "",
                 .param_sensor_type = cJSON_IsString(sensor_type_) ? sensor_type_->valuestring : "",
+                .param_before_sleep = cJSON_IsNumber(before_sleep_) ? before_sleep_->valueint : 0,
+                .param_sleep_length = cJSON_IsNumber(sleep_length_) ? sleep_length_->valueint : 0,
+                .param_before_long_sleep = cJSON_IsNumber(before_long_sleep_) ? before_long_sleep_->valueint : 0,
+                .param_long_sleep_length = cJSON_IsNumber(long_sleep_length_) ? long_sleep_length_->valueint : 0,
             };
             if (strcmp(sensor, "example") == 0)
             {
@@ -72,6 +84,18 @@ void sensor_init(void)
             {
                 sensor_bmp280(sensor, cluster, EP, &taskParams);
             }
+            else if (strcmp(sensor, "battary") == 0)
+            {
+                claster_battary(sensor, cluster, EP, &taskParams);
+            }
+            else if (strcmp(sensor, "deepsleep") == 0)
+            {
+                deep_sleep(sensor, cluster, EP, &taskParams);
+            }
+            //    else if (strcmp(sensor, "lightsleep") == 0)
+            //    {
+            //        light_sleep(sensor, cluster, EP, &taskParams);
+            //    }
         }
         item = item->next;
     }

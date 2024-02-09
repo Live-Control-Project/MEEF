@@ -17,12 +17,15 @@
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
 #include "cJSON.h"
-
 #include "api.h"
 #include <led_strip.h>
 #include <lwip/ip_addr.h>
 #include <esp_ota_ops.h>
 #include "../settings.h"
+
+// Переделать: если только ESP32 без zigbee то не подключать библиотеку
+#include "esp_zigbee_core.h"
+
 #include "../effects/effect.h"
 #include "../effects/surface.h"
 
@@ -395,6 +398,9 @@ static esp_err_t get_settings_wifi(httpd_req_t *req)
     cJSON_AddStringToObject(zigbee, "modelname", (char *)sys_settings.zigbee.modelname);
     cJSON_AddStringToObject(zigbee, "manufactuer", (char *)sys_settings.zigbee.manufactuer);
     cJSON_AddStringToObject(zigbee, "manufactuer_id", (char *)sys_settings.zigbee.manufactuer_id);
+    cJSON_AddBoolToObject(zigbee, "zigbee_router", sys_settings.zigbee.zigbee_router);
+    cJSON_AddBoolToObject(zigbee, "zigbee_dc_power", sys_settings.zigbee.zigbee_dc_power);
+    cJSON_AddBoolToObject(zigbee, "zigbee_light_sleep", sys_settings.zigbee.zigbee_light_sleep);
 
     cJSON *mqtt = cJSON_CreateObject();
     cJSON_AddItemToObject(res, "mqtt", mqtt);
@@ -668,6 +674,30 @@ static esp_err_t post_settings_wifi(httpd_req_t *req)
         err = ESP_ERR_INVALID_ARG;
         goto exit;
     }
+
+    cJSON *zigbee_router_item = cJSON_GetObjectItem(zigbee, "zigbee_router");
+    if (!cJSON_IsBool(zigbee_router_item))
+    {
+        msg = "Item `zigbee_router / enpoint` not found or invalid";
+        err = ESP_ERR_INVALID_ARG;
+        goto exit;
+    }
+    cJSON *zigbee_dc_power_item = cJSON_GetObjectItem(zigbee, "zigbee_dc_power");
+    if (!cJSON_IsBool(zigbee_dc_power_item))
+    {
+        msg = "Item `zigbee_dc_power` not found or invalid";
+        err = ESP_ERR_INVALID_ARG;
+        goto exit;
+    }
+    cJSON *zigbee_light_sleep_item = cJSON_GetObjectItem(zigbee, "zigbee_light_sleep");
+    if (!cJSON_IsBool(zigbee_light_sleep_item))
+    {
+        msg = "Item `zigbee_light_sleep` not found or invalid";
+        err = ESP_ERR_INVALID_ARG;
+        goto exit;
+    }
+
+    // MQTT
     cJSON *mqtt = cJSON_GetObjectItem(json, "mqtt");
     cJSON *mqtt_enabled_item = cJSON_GetObjectItem(mqtt, "mqtt_enabled");
     if (!cJSON_IsBool(mqtt_enabled_item))
@@ -796,6 +826,10 @@ static esp_err_t post_settings_wifi(httpd_req_t *req)
     strncpy((char *)sys_settings.zigbee.manufactuer, manufactuer, sizeof(sys_settings.zigbee.manufactuer) - 1);
     memset(sys_settings.zigbee.manufactuer_id, 0, sizeof(sys_settings.zigbee.manufactuer_id));
     strncpy((char *)sys_settings.zigbee.manufactuer_id, manufactuer_id, sizeof(sys_settings.zigbee.manufactuer_id) - 1);
+    sys_settings.zigbee.zigbee_router = cJSON_IsTrue(zigbee_router_item);
+    sys_settings.zigbee.zigbee_dc_power = cJSON_IsTrue(zigbee_dc_power_item);
+    sys_settings.zigbee.zigbee_light_sleep = cJSON_IsTrue(zigbee_light_sleep_item);
+
     // mqtt
     sys_settings.mqtt.mqtt_enabled = cJSON_IsTrue(mqtt_enabled_item);
     sys_settings.mqtt.mqtt_conected = cJSON_IsTrue(mqtt_conected_item);
@@ -990,6 +1024,10 @@ static const httpd_uri_t route_post_settings_leds = {
 static esp_err_t get_reboot(httpd_req_t *req)
 {
     (void)req;
+    if (sys_settings.zigbee.zigbee_present)
+    {
+        esp_zb_factory_reset();
+    }
     esp_restart();
 
     return ESP_OK; // dummy
