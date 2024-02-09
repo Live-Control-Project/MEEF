@@ -46,57 +46,67 @@ void sensor_gpioOUT(cJSON *sensor_json, int zigbee_init)
             int saveState = saveState_->valueint;
             if (strcmp(cluster, "on_off") == 0 && strcmp(sensor, "rele") == 0)
             {
-                if (zigbee_init == 0)
+                if ((pin >= 4 && pin <= 7) || (pin >= 12 && pin <= 13) || (pin >= 16 && pin <= 17) || (pin >= 18) || (pin == 9))
                 {
-                    ESP_LOGW(TAG, "Task: %s created. Cluster: %s EP: %d", sensor, cluster, ep);
-                }
-                // Чтение INT из NVS
-                int value_from_nvs; // Переменная для сохранения значения из NVS
-                // Вызов функции для чтения значения из NVS с использованием ключа "integer_value"
-                esp_err_t result = readIntFromNVS(id, &value_from_nvs);
-                if (result != ESP_OK)
-                {
-                    // Обработка ошибки при чтении значения из NVS
-                    if (result == ESP_ERR_NVS_NOT_FOUND)
-                    {
-                        // Ключ NVS не найден,
-
-                        gpio_set_level(pin, 0);
-                        ESP_LOGI(TAG, "RELE %d sets default value %s", pin, 0 ? "On" : "Off");
-                        if (zigbee_init == 1)
-                        {
-                            send_data(0, ep, cluster);
-                        }
-                    }
-                    else
-                    {
-                        // Произошла другая ошибка при чтении NVS, обработка ошибки
-                        ESP_LOGE(TAG, "Error reading int from NVS: %d\n", result);
-                    }
-                    // Дополнительный код обработки ошибки...
+                    ESP_LOGW(TAG, "Error while selecting output pin: %d. Cluster: %s EP: %d won't work.", pin, cluster, ep);
+                    ESP_LOGW(TAG, "DON'T USE: 4-7 Fast SPI, 9 BOOT, 12-13 USB, 16-17 UART, 18-23 SDIO");
                 }
                 else
                 {
-                    // Успешное чтение значения из NVS
-
-                    if (saveState == 0)
+                    if (zigbee_init == 0)
                     {
-                        // Удаляем ключ если сохранение запрещено в конфиге
-                        EraseKeyNVS(id);
-                        gpio_set_level(pin, 0);
-                        ESP_LOGI(TAG, "RELE %d set %s", pin, 0 ? "On" : "Off");
-                        if (zigbee_init == 1)
+                        ESP_LOGW(TAG, "Task: %s created. Cluster: %s EP: %d", sensor, cluster, ep);
+                    }
+                    gpio_set_direction(pin, GPIO_MODE_OUTPUT);
+                    gpio_set_pull_mode(pin, GPIO_PULLDOWN_ONLY);
+                    // Чтение INT из NVS
+                    int value_from_nvs; // Переменная для сохранения значения из NVS
+                    // Вызов функции для чтения значения из NVS с использованием ключа "integer_value"
+                    esp_err_t result = readIntFromNVS(id, &value_from_nvs);
+                    if (result != ESP_OK)
+                    {
+                        // Обработка ошибки при чтении значения из NVS
+                        if (result == ESP_ERR_NVS_NOT_FOUND)
                         {
-                            send_data(0, ep, cluster);
+                            // Ключ NVS не найден,
+
+                            gpio_set_level(pin, 0);
+                            ESP_LOGI(TAG, "RELE %d sets default value %s", pin, 0 ? "On" : "Off");
+                            if (zigbee_init == 1)
+                            {
+                                send_data(0, ep, cluster);
+                            }
                         }
+                        else
+                        {
+                            // Произошла другая ошибка при чтении NVS, обработка ошибки
+                            ESP_LOGE(TAG, "Error reading int from NVS: %d\n", result);
+                        }
+                        // Дополнительный код обработки ошибки...
                     }
                     else
                     {
-                        gpio_set_level(pin, value_from_nvs);
-                        ESP_LOGI(TAG, "RELE %d set %s", pin, value_from_nvs ? "On" : "Off");
-                        if (zigbee_init == 1)
+                        // Успешное чтение значения из NVS
+
+                        if (saveState == 0)
                         {
-                            send_data(value_from_nvs, ep, cluster);
+                            // Удаляем ключ если сохранение запрещено в конфиге
+                            EraseKeyNVS(id);
+                            gpio_set_level(pin, 0);
+                            ESP_LOGI(TAG, "RELE %d set %s", pin, 0 ? "On" : "Off");
+                            if (zigbee_init == 1)
+                            {
+                                send_data(0, ep, cluster);
+                            }
+                        }
+                        else
+                        {
+                            gpio_set_level(pin, value_from_nvs);
+                            ESP_LOGI(TAG, "RELE %d set %s", pin, value_from_nvs ? "On" : "Off");
+                            if (zigbee_init == 1)
+                            {
+                                send_data(value_from_nvs, ep, cluster);
+                            }
                         }
                     }
                 }

@@ -24,7 +24,11 @@ void vTaskGPIOin(void *pvParameters)
     int param_ep = params->param_ep;
     int param_int = params->param_int;
 
+    gpio_set_direction(param_pin, GPIO_MODE_INPUT);
+    gpio_set_pull_mode(param_pin, GPIO_PULLUP_ONLY);
+    
     uint16_t last_state = gpio_get_level(param_pin);
+    send_data(last_state, param_ep, cluster);
     // uint16_t last_state = 0;
     while (1)
     {
