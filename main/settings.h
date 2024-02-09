@@ -43,6 +43,7 @@ typedef struct
         bool zigbee_conected;
         bool zigbee_dc_power;
         bool zigbee_router;
+        bool zigbee_light_sleep;
         uint8_t lastBatteryPercentageRemaining;
         char modelname[16];
         char manufactuer[16];

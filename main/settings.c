@@ -25,8 +25,8 @@ static system_settings_t sys_defaults = {
     .device = {.devicename = "zigbee DIY"},
     .wifi = {
         .mode = DEFAULT_WIFI_MODE,
-        .wifi_present = false,
-        .wifi_enabled = false,
+        .wifi_present = true,
+        .wifi_enabled = true,
         .wifi_conected = false,
         .ip = {
             .dhcp = DEFAULT_WIFI_DHCP,
@@ -44,10 +44,11 @@ static system_settings_t sys_defaults = {
     },
     .zigbee = {
         .zigbee_present = true,
-        .zigbee_enabled = true,
+        .zigbee_enabled = false,
         .zigbee_conected = false,
-        .zigbee_router = false,
+        .zigbee_router = true,
         .zigbee_dc_power = false,
+        .zigbee_light_sleep = false,
         .lastBatteryPercentageRemaining = 0x8C,
         .modelname = "zigbee DIY",
         .manufactuer = "MEEF",

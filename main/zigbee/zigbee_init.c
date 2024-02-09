@@ -15,7 +15,10 @@
 #include "../utils/bus.h"
 #include "../settings.h"
 #include "../modules/sensors/gpioOUT/sensor_gpioOUT.h"
-
+#ifdef CONFIG_PM_ENABLE
+#include "esp_pm.h"
+#include "esp_private/esp_clk.h"
+#endif
 extern cJSON *sensor_json;
 extern cJSON *settings_json;
 /*------ Clobal definitions -----------*/
@@ -261,7 +264,6 @@ void esp_zb_app_signal_handler(esp_zb_app_signal_t *signal_struct)
     case ESP_ZB_BDB_SIGNAL_STEERING:
         if (err_status != ESP_OK)
         {
-
             sys_settings.zigbee.zigbee_conected = false;
             ESP_LOGW(TAG_zigbee, "Stack %s failure with %s status, steering", esp_zb_zdo_signal_to_string(sig_type), esp_err_to_name(err_status));
             esp_zb_scheduler_alarm((esp_zb_callback_t)bdb_start_top_level_commissioning_cb, ESP_ZB_BDB_MODE_NETWORK_STEERING, 1000);
@@ -290,6 +292,13 @@ void esp_zb_app_signal_handler(esp_zb_app_signal_t *signal_struct)
         {
             ESP_LOGI(TAG_zigbee, "Reset device");
             esp_zb_factory_reset();
+        }
+        break;
+    case ESP_ZB_COMMON_SIGNAL_CAN_SLEEP:
+        if (sys_settings.zigbee.zigbee_conected == true && sys_settings.zigbee.zigbee_light_sleep == true)
+        {
+            ESP_LOGI(TAG, "Zigbee can sleep");
+            esp_zb_sleep_now();
         }
         break;
     default:
@@ -582,6 +591,11 @@ void createAttributes(esp_zb_cluster_list_t *esp_zb_cluster_list, char *cluster,
 
 static void esp_zb_task(void *pvParameters)
 {
+
+    if (sys_settings.zigbee.zigbee_light_sleep == true)
+    {
+        esp_zb_sleep_enable(true);
+    }
     /* initialize Zigbee stack */
     if (sys_settings.zigbee.zigbee_router)
     {
@@ -775,10 +789,29 @@ static void esp_zb_task(void *pvParameters)
     esp_zb_main_loop_iteration();
     bus_send_event(EVENT_ZIGBEE_START, NULL, 0);
 }
-
+static esp_err_t esp_zb_power_save_init(void)
+{
+    esp_err_t rc = ESP_OK;
+#ifdef CONFIG_PM_ENABLE
+    int cur_cpu_freq_mhz = CONFIG_ESP_DEFAULT_CPU_FREQ_MHZ;
+    esp_pm_config_t pm_config = {
+        .max_freq_mhz = cur_cpu_freq_mhz,
+        .min_freq_mhz = cur_cpu_freq_mhz,
+#if CONFIG_FREERTOS_USE_TICKLESS_IDLE
+        .light_sleep_enable = true
+#endif
+    };
+    rc = esp_pm_configure(&pm_config);
+#endif
+    return rc;
+}
 void zigbee_init(void)
 {
-
+    /* esp zigbee light sleep initialization*/
+    if (sys_settings.zigbee.zigbee_light_sleep == true)
+    {
+        ESP_ERROR_CHECK(esp_zb_power_save_init());
+    }
     esp_zb_platform_config_t config = {
         .radio_config = ESP_ZB_DEFAULT_RADIO_CONFIG(),
         .host_config = ESP_ZB_DEFAULT_HOST_CONFIG(),
