@@ -300,8 +300,8 @@ void esp_zb_app_signal_handler(esp_zb_app_signal_t *signal_struct)
     case ESP_ZB_COMMON_SIGNAL_CAN_SLEEP:
         if (sys_settings.zigbee.zigbee_conected == true && sys_settings.zigbee.zigbee_light_sleep == true)
         {
-            ESP_LOGI(TAG, "Zigbee can sleep");
-            esp_zb_sleep_now();
+            //   ESP_LOGI(TAG, "Zigbee can sleep");
+            //   esp_zb_sleep_now();
         }
         break;
     default:
