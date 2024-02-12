@@ -1,1 +1,29 @@
-[]
+[
+    {
+        "sensor": "battary",
+        "id": "battary13",
+        "int": 60,
+        "clasters": [
+            "battary"
+        ],
+        "EP": 1,
+        "claster": "battary"
+    },
+    {
+        "sensor": "AHT",
+        "id": "aht95",
+        "int": 60,
+        "pin_SCL": 19,
+        "pin_SDA": 18,
+        "I2C_GND": 1,
+        "I2C_ADDRESS": "0x36",
+        "clasters": [
+            "all",
+            "temperature",
+            "humidity"
+        ],
+        "sensor_type": "AHT20",
+        "EP": 1,
+        "claster": "all"
+    }
+]

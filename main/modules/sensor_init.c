@@ -12,7 +12,7 @@
 #include "sensors/bmp280/sensor_bmp280.h"
 #include "virtual/battary/battary.h"
 #include "virtual/deepsleep/deepsleep.h"
-#include "virtual/lightsleep/lightsleep.h"
+
 extern cJSON *sensor_json;
 static const char *TAG = "sensor_init";
 
@@ -92,10 +92,6 @@ void sensor_init(void)
             {
                 deep_sleep(sensor, cluster, EP, &taskParams);
             }
-            //    else if (strcmp(sensor, "lightsleep") == 0)
-            //    {
-            //        light_sleep(sensor, cluster, EP, &taskParams);
-            //    }
         }
         item = item->next;
     }

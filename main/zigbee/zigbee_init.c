@@ -221,9 +221,11 @@ static esp_err_t zb_action_handler(esp_zb_core_action_callback_id_t callback_id,
     {
     case ESP_ZB_CORE_SET_ATTR_VALUE_CB_ID:
         ret = zb_attribute_handler((esp_zb_zcl_set_attr_value_message_t *)message);
+        ESP_LOGW(TAG_zigbee, "Receive zb_attribute_handler");
         break;
     case ESP_ZB_CORE_CMD_READ_ATTR_RESP_CB_ID:
         ret = zb_read_attr_resp_handler((esp_zb_zcl_cmd_read_attr_resp_message_t *)message);
+        ESP_LOGW(TAG_zigbee, "Receive zb_read_attr_resp_handler ");
         break;
     default:
         ESP_LOGW(TAG_zigbee, "Receive Zigbee action(0x%x) callback", callback_id);
@@ -280,9 +282,10 @@ void esp_zb_app_signal_handler(esp_zb_app_signal_t *signal_struct)
                      esp_zb_get_pan_id(), esp_zb_get_current_channel());
             read_server_time();
 
-            bus_send_event(EVENT_ZIGBEE_UP, NULL, 0);
+            //            bus_send_event(EVENT_ZIGBEE_UP, NULL, 0);
             // Восстанавливаем состояние RELE и публикуем в zigbee cеть
             sensor_gpioOUT(sensor_json, 1);
+            bus_send_event(EVENT_ZIGBEE_UP, NULL, 0);
         }
         break;
     case ESP_ZB_ZDO_SIGNAL_LEAVE:

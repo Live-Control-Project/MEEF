@@ -10,7 +10,6 @@
 #include "esp_vfs.h"
 #include "esp_spiffs.h"
 #include "esp_http_server.h"
-#include "common.h"
 #include "esp_system.h"
 #include "esp_ota_ops.h"
 #include "esp_app_format.h"

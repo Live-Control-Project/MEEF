@@ -1,7 +1,7 @@
 #ifndef MEEF_SURFACE_H_
 #define MEEF_SURFACE_H_
 
-#include "common.h"
+#include "../utils/common.h"
 
 esp_err_t surface_init();
 

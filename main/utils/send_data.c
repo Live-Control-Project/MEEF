@@ -3,10 +3,11 @@
 #include "string.h"
 #include "esp_log.h"
 #include "esp_err.h"
+#include "../settings.h"
 
 #define MODE_ZIGBEE = TRUE;
 
-static const char *TAG = "send_data";
+static const char *TAG_send_data = "send_data";
 
 static void reportAttribute(uint8_t endpoint, uint16_t clusterID, uint16_t attributeID, void *value, uint8_t value_length)
 {
@@ -28,49 +29,44 @@ static void reportAttribute(uint8_t endpoint, uint16_t clusterID, uint16_t attri
 
 void send_data(uint16_t sensor_val, int param_ep, char *cluster)
 {
-    ESP_LOGI(TAG, "sensor_val: %d  / endpoint: %d  / cluster: \"%s\"", sensor_val, param_ep, cluster);
+    ESP_LOGI(TAG_send_data, "sensor_val: %d  / endpoint: %d  / cluster: \"%s\"", sensor_val, param_ep, cluster);
 
-    if (strcmp(cluster, "temperature") == 0)
+    if (sys_settings.zigbee.zigbee_conected == true && strcmp(cluster, "temperature") == 0)
     {
-#ifdef MODE_ZIGBEE
-        ESP_LOGI(TAG, "sensor_val: %d   / cluster: \"%s\"", sensor_val, cluster);
+
         esp_zb_zcl_status_t state_tmp = esp_zb_zcl_set_attribute_val(param_ep, ESP_ZB_ZCL_CLUSTER_ID_TEMP_MEASUREMENT, ESP_ZB_ZCL_CLUSTER_SERVER_ROLE, ESP_ZB_ZCL_ATTR_TEMP_MEASUREMENT_VALUE_ID, &sensor_val, false);
         if (state_tmp != ESP_ZB_ZCL_STATUS_SUCCESS)
         {
-            ESP_LOGE(TAG, "Setting temperature attribute failed!");
+            ESP_LOGE(TAG_send_data, "Setting temperature attribute failed!");
         }
-#endif
     }
-    else if (strcmp(cluster, "humidity") == 0)
+    else if (sys_settings.zigbee.zigbee_conected == true && strcmp(cluster, "humidity") == 0)
     {
-#ifdef MODE_ZIGBEE
+
         esp_zb_zcl_status_t state_hum = esp_zb_zcl_set_attribute_val(param_ep, ESP_ZB_ZCL_CLUSTER_ID_REL_HUMIDITY_MEASUREMENT, ESP_ZB_ZCL_CLUSTER_SERVER_ROLE, ESP_ZB_ZCL_ATTR_REL_HUMIDITY_MEASUREMENT_VALUE_ID, &sensor_val, false);
         if (state_hum != ESP_ZB_ZCL_STATUS_SUCCESS)
         {
-            ESP_LOGE(TAG, "Setting humidity attribute failed!");
+            ESP_LOGE(TAG_send_data, "Setting humidity attribute failed!");
         }
-#endif
     }
-    else if (strcmp(cluster, "pressure") == 0)
+    else if (sys_settings.zigbee.zigbee_conected == true && strcmp(cluster, "pressure") == 0)
     {
-#ifdef MODE_ZIGBEE
+
         esp_zb_zcl_status_t state_pres = esp_zb_zcl_set_attribute_val(param_ep, ESP_ZB_ZCL_CLUSTER_ID_PRESSURE_MEASUREMENT, ESP_ZB_ZCL_CLUSTER_SERVER_ROLE, ESP_ZB_ZCL_ATTR_PRESSURE_MEASUREMENT_VALUE_ID, &sensor_val, false);
         if (state_pres != ESP_ZB_ZCL_STATUS_SUCCESS)
         {
-            ESP_LOGE(TAG, "Setting pressure attribute failed!");
+            ESP_LOGE(TAG_send_data, "Setting pressure attribute failed!");
         }
-#endif
     }
-    else if (strcmp(cluster, "BINARY") == 0)
+    else if (sys_settings.zigbee.zigbee_conected == true && strcmp(cluster, "BINARY") == 0)
     {
-#ifdef MODE_ZIGBEE
+
         reportAttribute(param_ep, ESP_ZB_ZCL_CLUSTER_ID_BINARY_INPUT, ESP_ZB_ZCL_ATTR_BINARY_INPUT_PRESENT_VALUE_ID, &sensor_val, 1);
-#endif
     }
     //----------------
-    else if (strcmp(cluster, "ZoneStatus") == 0)
+    else if (sys_settings.zigbee.zigbee_conected == true && strcmp(cluster, "ZoneStatus") == 0)
     {
-#ifdef MODE_ZIGBEE
+
         esp_zb_zcl_ias_zone_status_change_notif_cmd_t cmd = {
             .zcl_basic_cmd = {
                 .dst_addr_u.addr_short = 0x0000,
@@ -83,12 +79,10 @@ void send_data(uint16_t sensor_val, int param_ep, char *cluster)
             .delay = 0,
         };
         esp_zb_zcl_ias_zone_status_change_notif_cmd_req(&cmd);
-
-#endif
     }
-    else if (strcmp(cluster, "Motion") == 0)
+    else if (sys_settings.zigbee.zigbee_conected == true && strcmp(cluster, "Motion") == 0)
     {
-#ifdef MODE_ZIGBEE
+
         esp_zb_zcl_ias_zone_status_change_notif_cmd_t cmd = {
             .zcl_basic_cmd = {
                 .dst_addr_u.addr_short = 0x0000,
@@ -101,12 +95,10 @@ void send_data(uint16_t sensor_val, int param_ep, char *cluster)
             .delay = 0,
         };
         esp_zb_zcl_ias_zone_status_change_notif_cmd_req(&cmd);
-
-#endif
     }
-    else if (strcmp(cluster, "Contact") == 0)
+    else if (sys_settings.zigbee.zigbee_conected == true && strcmp(cluster, "Contact") == 0)
     {
-#ifdef MODE_ZIGBEE
+
         esp_zb_zcl_ias_zone_status_change_notif_cmd_t cmd = {
             .zcl_basic_cmd = {
                 .dst_addr_u.addr_short = 0x0000,
@@ -119,12 +111,10 @@ void send_data(uint16_t sensor_val, int param_ep, char *cluster)
             .delay = 0,
         };
         esp_zb_zcl_ias_zone_status_change_notif_cmd_req(&cmd);
-
-#endif
     }
-    else if (strcmp(cluster, "Door_Window") == 0)
+    else if (sys_settings.zigbee.zigbee_conected == true && strcmp(cluster, "Door_Window") == 0)
     {
-#ifdef MODE_ZIGBEE
+
         esp_zb_zcl_ias_zone_status_change_notif_cmd_t cmd = {
             .zcl_basic_cmd = {
                 .dst_addr_u.addr_short = 0x0000,
@@ -137,12 +127,10 @@ void send_data(uint16_t sensor_val, int param_ep, char *cluster)
             .delay = 0,
         };
         esp_zb_zcl_ias_zone_status_change_notif_cmd_req(&cmd);
-
-#endif
     }
-    else if (strcmp(cluster, "Fire") == 0)
+    else if (sys_settings.zigbee.zigbee_conected == true && strcmp(cluster, "Fire") == 0)
     {
-#ifdef MODE_ZIGBEE
+
         esp_zb_zcl_ias_zone_status_change_notif_cmd_t cmd = {
             .zcl_basic_cmd = {
                 .dst_addr_u.addr_short = 0x0000,
@@ -155,12 +143,10 @@ void send_data(uint16_t sensor_val, int param_ep, char *cluster)
             .delay = 0,
         };
         esp_zb_zcl_ias_zone_status_change_notif_cmd_req(&cmd);
-
-#endif
     }
-    else if (strcmp(cluster, "Occupancy") == 0)
+    else if (sys_settings.zigbee.zigbee_conected == true && strcmp(cluster, "Occupancy") == 0)
     {
-#ifdef MODE_ZIGBEE
+
         esp_zb_zcl_ias_zone_status_change_notif_cmd_t cmd = {
             .zcl_basic_cmd = {
                 .dst_addr_u.addr_short = 0x0000,
@@ -173,12 +159,10 @@ void send_data(uint16_t sensor_val, int param_ep, char *cluster)
             .delay = 0,
         };
         esp_zb_zcl_ias_zone_status_change_notif_cmd_req(&cmd);
-
-#endif
     }
-    else if (strcmp(cluster, "WaterLeak") == 0)
+    else if (sys_settings.zigbee.zigbee_conected == true && strcmp(cluster, "WaterLeak") == 0)
     {
-#ifdef MODE_ZIGBEE
+
         esp_zb_zcl_ias_zone_status_change_notif_cmd_t cmd = {
             .zcl_basic_cmd = {
                 .dst_addr_u.addr_short = 0x0000,
@@ -191,12 +175,10 @@ void send_data(uint16_t sensor_val, int param_ep, char *cluster)
             .delay = 0,
         };
         esp_zb_zcl_ias_zone_status_change_notif_cmd_req(&cmd);
-
-#endif
     }
-    else if (strcmp(cluster, "Carbon") == 0)
+    else if (sys_settings.zigbee.zigbee_conected == true && strcmp(cluster, "Carbon") == 0)
     {
-#ifdef MODE_ZIGBEE
+
         esp_zb_zcl_ias_zone_status_change_notif_cmd_t cmd = {
             .zcl_basic_cmd = {
                 .dst_addr_u.addr_short = 0x0000,
@@ -209,12 +191,10 @@ void send_data(uint16_t sensor_val, int param_ep, char *cluster)
             .delay = 0,
         };
         esp_zb_zcl_ias_zone_status_change_notif_cmd_req(&cmd);
-
-#endif
     }
-    else if (strcmp(cluster, "Remote_Control") == 0)
+    else if (sys_settings.zigbee.zigbee_conected == true && strcmp(cluster, "Remote_Control") == 0)
     {
-#ifdef MODE_ZIGBEE
+
         esp_zb_zcl_ias_zone_status_change_notif_cmd_t cmd = {
             .zcl_basic_cmd = {
                 .dst_addr_u.addr_short = 0x0000,
@@ -227,16 +207,16 @@ void send_data(uint16_t sensor_val, int param_ep, char *cluster)
             .delay = 0,
         };
         esp_zb_zcl_ias_zone_status_change_notif_cmd_req(&cmd);
-
-#endif
     }
 
-    if (strcmp(cluster, "on_off") == 0)
+    if (sys_settings.zigbee.zigbee_conected == true && strcmp(cluster, "on_off") == 0)
     {
-#ifdef MODE_ZIGBEE
 
         reportAttribute(param_ep, ESP_ZB_ZCL_CLUSTER_ID_ON_OFF, ESP_ZB_ZCL_ATTR_ON_OFF_ON_OFF_ID, &sensor_val, 1);
+    }
+    if (sys_settings.zigbee.zigbee_conected == true && strcmp(cluster, "battary") == 0)
+    {
 
-#endif
+        reportAttribute(param_ep, ESP_ZB_ZCL_CLUSTER_ID_POWER_CONFIG, ESP_ZB_ZCL_ATTR_POWER_CONFIG_BATTERY_PERCENTAGE_REMAINING_ID, &sensor_val, 1);
     }
 }

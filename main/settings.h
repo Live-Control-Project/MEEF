@@ -1,7 +1,7 @@
 #ifndef MEEF_SETTINGS_H_
 #define MEEF_SETTINGS_H_
 
-#include "common.h"
+#include "utils/common.h"
 #include <cJSON.h>
 
 typedef enum

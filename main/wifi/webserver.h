@@ -1,7 +1,7 @@
 #ifndef MEEF_WEBSERVER_H_
 #define MEEF_WEBSERVER_H_
 
-#include "common.h"
+#include "../utils/common.h"
 #include <esp_http_server.h>
 
 esp_err_t webserver_restart();

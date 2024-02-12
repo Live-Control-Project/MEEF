@@ -3,7 +3,6 @@
 idf_component_register(
 	INCLUDE_DIRS .
 	SRCS
-		common.c
 		main.c
 		settings.c
 		effects/effect.c
@@ -19,6 +18,7 @@ idf_component_register(
 		utils/nvs.c
 		utils/json.c
 		utils/send_data.c
+		utils/common.c
 		zigbee/zigbee_init.c
 		modules/sensor_init.c
 		modules/sensors/gpioOUT/sensor_gpioOUT.c
@@ -30,7 +30,7 @@ idf_component_register(
 
 		modules/virtual/battary/battary.c
 		modules/virtual/deepsleep/deepsleep.c
-		#modules/virtual/lightsleep/lightsleep.c
+		
 
 		effects/crazybees.c
 		effects/dna.c
