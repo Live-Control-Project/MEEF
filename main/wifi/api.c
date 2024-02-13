@@ -978,7 +978,7 @@ static esp_err_t post_settings_leds(httpd_req_t *req)
     }
 
     uint8_t type = (uint8_t)cJSON_GetNumberValue(type_item);
-    if (type >= LED_STRIP_TYPE_MAX)
+    if (type >= 512)
     {
         msg = "Invalid LED type";
         err = ESP_ERR_INVALID_ARG;
