@@ -1,4 +1,3 @@
-#set(EMBED ../files)
 
 idf_component_register(
 	INCLUDE_DIRS .
@@ -65,24 +64,6 @@ idf_component_register(
 		effects/octopus.c
 		effects/nuclear.c
 
-#	EMBED_TXTFILES
-#		${EMBED}/web/jquery.js
-#		${EMBED}/web/styles.css
-#		${EMBED}/web/index.html
-		
-#	EMBED_FILES
-#		${EMBED}/gifs/heart.gif
-#		${EMBED}/gifs/heart2.gif
-#		${EMBED}/gifs/boldman.gif
-#		${EMBED}/gifs/coin.gif
-#		${EMBED}/gifs/disk.gif
-#		${EMBED}/gifs/girl.gif
-#		${EMBED}/gifs/hairyman.gif
-#		${EMBED}/gifs/hero.gif
-#		${EMBED}/gifs/disk.gif
-#		${EMBED}/gifs/torch.gif
-#		${EMBED}/gifs/zombie.gif
-#		${EMBED}/gifs/cutebear.gif
 
 		
 )
