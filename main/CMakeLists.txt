@@ -4,10 +4,6 @@ idf_component_register(
 	SRCS
 		main.c
 		settings.c
-		effects/effect.c
-		effects/surface.c
-		effects/input.c
-		effects/palettes.c
 		wifi/wifi.c
 		wifi/webserver.c
 		wifi/api.c
@@ -30,7 +26,15 @@ idf_component_register(
 		modules/virtual/battary/battary.c
 		modules/virtual/deepsleep/deepsleep.c
 		
+		modules/exec/led_light/led_light.c
+		modules/exec/led_light/light.c
+		modules/exec/led_light/crc16.c
 
+		effects/effect.c
+		effects/surface.c
+		effects/input.c
+		effects/palettes.c
+		
 		effects/crazybees.c
 		effects/dna.c
 		effects/fire.c

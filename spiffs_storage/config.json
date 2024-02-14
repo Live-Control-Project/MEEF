@@ -25,5 +25,15 @@
         "sensor_type": "AHT20",
         "EP": 1,
         "claster": "all"
+    },
+    {
+        "sensor": "led_light",
+        "id": "led_light",
+        "pin": 8,
+        "clasters": [
+            "all"
+        ],
+        "EP": 1,
+        "claster": "all"
     }
 ]
