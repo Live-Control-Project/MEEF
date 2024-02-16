@@ -7,6 +7,7 @@ idf_component_register(
 		wifi/wifi.c
 		wifi/webserver.c
 		wifi/api.c
+		wifi/mqtt.c
 		utils/bus.c
 		utils/utils.c
 		utils/spiffs.c

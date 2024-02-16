@@ -4,14 +4,13 @@
 #include "esp_log.h"
 #include "led_strip.h"
 #include "nvs_flash.h"
-#include "config.h"
 #include "crc16.h"
 #include "light.h"
+
 
 static const char *tag = "light";
 static led_strip_handle_t led_handle;
 static light_data_t *light = NULL;
-
 static double correct_gamma(double value)
 {
     return value <= 0.0031306684425006 ? value * 12.92 : pow(value, 1 / 2.4) * 1.055 - 0.055;
@@ -19,16 +18,25 @@ static double correct_gamma(double value)
 
 void light_init(light_data_t *data, int pin)
 {
-    led_strip_config_t led_config;
-    led_strip_rmt_config_t rmt_config;
+    led_strip_config_t led_config = {
+        .strip_gpio_num = 8,                      // The GPIO that connected to the LED strip's data line
+        .max_leds = 1,                            // The number of LEDs in the strip,
+        .led_pixel_format = LED_PIXEL_FORMAT_GRB, // Pixel format of your LED strip
+        .led_model = LED_MODEL_WS2812,            // LED strip model
+        .flags.invert_out = false,                // whether to invert the output signal (useful when your hardware has a level inverter)
+    };
+    led_strip_rmt_config_t rmt_config = {
+#if ESP_IDF_VERSION < ESP_IDF_VERSION_VAL(5, 0, 0)
+        .rmt_channel = 0,
+#else
+        .clk_src = RMT_CLK_SRC_DEFAULT,    // different clock source can lead to different power consumption
+        .resolution_hz = 10 * 1000 * 1000, // 10MHz
+        .flags.with_dma = false,           // whether to enable the DMA feature
+#endif
+    };
+
     nvs_handle_t nvs_handle;
     size_t size = sizeof(light_data_t);
-
-    led_config.max_leds = 1;
-    led_config.strip_gpio_num = pin;
-    led_config.led_model = LED_MODEL_WS2812;
-    led_config.led_pixel_format = LED_PIXEL_FORMAT_GRB;
-    rmt_config.resolution_hz = 10000000;
     light = data;
 
     nvs_open("nvs", NVS_READONLY, &nvs_handle);
@@ -40,7 +48,7 @@ void light_init(light_data_t *data, int pin)
         ESP_LOGW(tag, "status read error, using default values");
         memset(light, 0, size);
         light->status = 1;
-        light->level = 5;
+        light->level = 25;
     }
     else
         ESP_LOGI(tag, "status read success");

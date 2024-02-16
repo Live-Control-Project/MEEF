@@ -3,7 +3,9 @@
 #include "string.h"
 #include "esp_log.h"
 #include "esp_err.h"
+#include "cJSON.h"
 #include "../settings.h"
+#include "../wifi/mqtt.h"
 
 #define MODE_ZIGBEE = TRUE;
 
@@ -31,6 +33,19 @@ void send_data(uint16_t sensor_val, int param_ep, char *cluster)
 {
     ESP_LOGI(TAG_send_data, "sensor_val: %d  / endpoint: %d  / cluster: \"%s\"", sensor_val, param_ep, cluster);
 
+    // MQTT
+    if (sys_settings.mqtt.mqtt_conected == true)
+    {
+        char topic[150];
+        snprintf(topic, sizeof(topic), "/homed/fd/custom/%s", sys_settings.wifi.STA_MAC);
+        cJSON *sensordata = cJSON_CreateObject();
+        // float value = sensor_val / 100.0;
+        // float rounded = (int)(value * 10 + 0.5) / 10.0;
+        cJSON_AddNumberToObject(sensordata, cluster, sensor_val / 100);
+        publis_status_mqtt(topic, param_ep, cJSON_Print(sensordata));
+        cJSON_Delete(sensordata);
+    }
+    // ZIGBEE
     if (sys_settings.zigbee.zigbee_conected == true && strcmp(cluster, "temperature") == 0)
     {
 
@@ -208,15 +223,14 @@ void send_data(uint16_t sensor_val, int param_ep, char *cluster)
         };
         esp_zb_zcl_ias_zone_status_change_notif_cmd_req(&cmd);
     }
-
-    if (sys_settings.zigbee.zigbee_conected == true && strcmp(cluster, "on_off") == 0)
+    // swith
+    if (sys_settings.zigbee.zigbee_conected == true && strcmp(cluster, "switch") == 0)
     {
-
         reportAttribute(param_ep, ESP_ZB_ZCL_CLUSTER_ID_ON_OFF, ESP_ZB_ZCL_ATTR_ON_OFF_ON_OFF_ID, &sensor_val, 1);
     }
+    //   battary
     if (sys_settings.zigbee.zigbee_conected == true && strcmp(cluster, "battary") == 0)
     {
-
         reportAttribute(param_ep, ESP_ZB_ZCL_CLUSTER_ID_POWER_CONFIG, ESP_ZB_ZCL_ATTR_POWER_CONFIG_BATTERY_PERCENTAGE_REMAINING_ID, &sensor_val, 1);
     }
 }

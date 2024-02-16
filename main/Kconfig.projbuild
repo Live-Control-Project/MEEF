@@ -49,7 +49,7 @@ menu "*** MEEF configuration ***"
 		
 			config EL_WIFI_STA_SSID
 				string "SSID"
-				default "MGTS_70"
+				default "perenio"
 				
 			config EL_WIFI_STA_PASSWD
 				string "Password"
@@ -63,7 +63,7 @@ menu "*** MEEF configuration ***"
 			
 		config EL_WIFI_IP
 			string "IP address"
-			default "192.168.1.1"
+			default "192.168.4.1"
 
 		config EL_WIFI_NETMASK
 			string "Netmask"
@@ -71,11 +71,11 @@ menu "*** MEEF configuration ***"
 
 		config EL_WIFI_GATEWAY
 			string "Gateway"
-			default "192.168.1.1"
+			default "192.168.4.1"
 			
 		config EL_WIFI_DNS
 			string "DNS server"
-			default "192.168.1.1"
+			default "192.168.4.1"
 			
 	endmenu
 	

@@ -24,6 +24,8 @@ typedef struct
         bool wifi_present;
         bool wifi_enabled;
         bool wifi_conected;
+        bool STA_conected;
+        char STA_MAC[16];
         struct
         {
             bool dhcp;

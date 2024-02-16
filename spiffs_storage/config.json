@@ -1,18 +1,54 @@
 [
     {
-        "sensor": "battary",
-        "id": "battary13",
-        "int": 60,
+        "sensor": "rele",
+        "id": "rele70",
+        "pin": 2,
+        "saveState": 0,
         "clasters": [
-            "battary"
+            "switch"
         ],
         "EP": 1,
-        "claster": "battary"
+        "claster": "switch"
     },
     {
+        "sensor": "rele",
+        "id": "rele74",
+        "pin": 13,
+        "saveState": 0,
+        "clasters": [
+            "switch"
+        ],
+        "EP": 2,
+        "claster": "switch"
+    },
+    {
+        "sensor": "rele",
+        "id": "rele80",
+        "pin": 14,
+        "saveState": 0,
+        "clasters": [
+            "switch"
+        ],
+        "EP": 3,
+        "claster": "switch"
+    },
+    {
+        "sensor": "rele",
+        "id": "rele83",
+        "pin": 15,
+        "saveState": 0,
+        "clasters": [
+            "switch"
+        ],
+        "EP": 4,
+        "claster": "switch"
+    },
+    {
+        "num": 5,
+        "name": "5. 🌡💧 AHT (temperature humidity)",
         "sensor": "AHT",
-        "id": "aht95",
-        "int": 60,
+        "id": "aht",
+        "int": 20,
         "pin_SCL": 19,
         "pin_SDA": 18,
         "I2C_GND": 1,
@@ -22,18 +58,8 @@
             "temperature",
             "humidity"
         ],
+        "claster": "all",
         "sensor_type": "AHT20",
-        "EP": 1,
-        "claster": "all"
-    },
-    {
-        "sensor": "led_light",
-        "id": "led_light",
-        "pin": 8,
-        "clasters": [
-            "all"
-        ],
-        "EP": 1,
-        "claster": "all"
+        "EP": 1
     }
 ]

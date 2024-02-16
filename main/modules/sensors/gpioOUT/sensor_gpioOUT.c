@@ -44,7 +44,7 @@ void sensor_gpioOUT(cJSON *sensor_json, int zigbee_init)
             int pin = pin_->valueint;
             int ep = ep_->valueint;
             int saveState = saveState_->valueint;
-            if (strcmp(cluster, "on_off") == 0 && strcmp(sensor, "rele") == 0)
+            if (strcmp(cluster, "switch") == 0 && strcmp(sensor, "rele") == 0)
             {
                 if ((pin >= 4 && pin <= 7) || (pin >= 12 && pin <= 13) || (pin >= 16 && pin <= 17) || (pin >= 18) || (pin == 9))
                 {

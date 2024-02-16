@@ -33,7 +33,9 @@
         "adc_cali_scheme.h": "c",
         "esp_zb_sleepy_end_device.h": "c",
         "common.h": "c",
-        "sensor_gpioout.h": "c"
+        "sensor_gpioout.h": "c",
+        "send_data.h": "c",
+        "mqtt.h": "c"
     },
     "idf.adapterTargetName": "esp32c6",
     "C_Cpp.errorSquiggles": "disabled",
