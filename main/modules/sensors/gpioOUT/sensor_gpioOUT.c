@@ -57,7 +57,7 @@ void sensor_gpioOUT(cJSON *sensor_json, int zigbee_init)
                     {
                         ESP_LOGW(TAG, "Task: %s created. Cluster: %s EP: %d", sensor, cluster, ep);
                     }
-                    gpio_reset_pin(pin); //helps for pins >18 or ==9 or (>4 and <7)
+                    gpio_reset_pin(pin); //helps for pins (>=18 and <=23) or (>=4 and <=7)
                     gpio_set_direction(pin, GPIO_MODE_OUTPUT);
                     gpio_set_pull_mode(pin, GPIO_PULLDOWN_ONLY);
                     // Чтение INT из NVS
