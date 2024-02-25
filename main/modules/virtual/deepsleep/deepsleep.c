@@ -3,10 +3,10 @@
 #include "esp_log.h"
 #include "esp_err.h"
 #include "string.h"
-#include "../../../send_data.h"
+#include "../../../utils/send_data.h"
 #include "../../sensor_init.h"
 #include "deepsleep.h"
-#include "../../../utils/bus.h"
+#include "../../../settings.h"
 #include "esp_timer.h"
 #include "time.h"
 #include "sys/time.h"
@@ -14,6 +14,7 @@
 #include "driver/rtc_io.h"
 #include <esp_sleep.h>
 
+static const char *TAG_deep_sleep = "DEEP_SLEEP";
 //----------------------------------//
 static RTC_DATA_ATTR struct timeval s_sleep_enter_time;
 static esp_timer_handle_t s_oneshot_timer;
@@ -22,7 +23,7 @@ static esp_timer_handle_t s_oneshot_timer;
 static void s_oneshot_timer_callback(void *arg)
 {
     /* Enter deep sleep */
-    ESP_LOGI(TAG, "Enter deep sleep");
+    ESP_LOGI(TAG_deep_sleep, "Enter deep sleep");
     gettimeofday(&s_sleep_enter_time, NULL);
     esp_deep_sleep_start();
 }
@@ -50,24 +51,24 @@ static void zb_deep_sleep_init(int gpio_wakeup_pin, int wakeup_time_sec)
     {
     case ESP_SLEEP_WAKEUP_TIMER:
     {
-        ESP_LOGW(TAG, "Wake up from timer. Time spent in deep sleep and boot: %d s", sleep_time_ms / 1000);
+        ESP_LOGW(TAG_deep_sleep, "Wake up from timer. Time spent in deep sleep and boot: %d s", sleep_time_ms / 1000);
         break;
     }
     case ESP_SLEEP_WAKEUP_EXT1:
     {
-        ESP_LOGW(TAG, "Wake up from GPIO. Time spent in deep sleep and boot: %d s", sleep_time_ms / 1000);
+        ESP_LOGW(TAG_deep_sleep, "Wake up from GPIO. Time spent in deep sleep and boot: %d s", sleep_time_ms / 1000);
         break;
     }
     case ESP_SLEEP_WAKEUP_UNDEFINED:
     default:
-        // ESP_LOGW(TAG, "Not a deep sleep reset");
+        // ESP_LOGW(TAG_deep_sleep, "Not a deep sleep reset");
         break;
     }
 
     /* Set the methods of how to wake up: */
     /* 1. RTC timer waking-up */
 
-    ESP_LOGI(TAG, "Enabling timer wakeup, %d s", wakeup_time_sec);
+    ESP_LOGI(TAG_deep_sleep, "Enabling timer wakeup, %d s", wakeup_time_sec);
     ESP_ERROR_CHECK(esp_sleep_enable_timer_wakeup(wakeup_time_sec * 1000000));
 
     /* 2. GPIO waking-up */
@@ -91,7 +92,7 @@ static void zb_deep_sleep_init(int gpio_wakeup_pin, int wakeup_time_sec)
     The BOOT button is connected to the pull-up resistor, so enable the pull-up mode and disable the pull-down mode.
 
     Notice: if these GPIO configurations do not match the hardware design, the deep sleep module will enable the GPIO hold
-    feature to hold the GPIO voltage when enter the sleep, which will ensure the board be waked up by GPIO. But it will cause
+    feature to hold the GPIO volTAG_deep_sleepe when enter the sleep, which will ensure the board be waked up by GPIO. But it will cause
     3~4 times power consumption increasing during sleep. */
     ESP_ERROR_CHECK(gpio_pullup_en(gpio_wakeup_pin));
     ESP_ERROR_CHECK(gpio_pulldown_dis(gpio_wakeup_pin));
@@ -116,29 +117,17 @@ static void deep_sleep_task(void *pvParameters)
 
     while (1)
     {
-        event_t e;
-        esp_err_t err;
-        if (bus_receive_event(&e, 1000) != ESP_OK)
-            continue;
-
-        switch (e.type)
+        if (sys_settings.zigbee.zigbee_conected == true)
         {
-            //        case EVENT_ZIGBEE_START:
-            //            break;
-        case EVENT_ZIGBEE_UP:
-            /* Start the one-shot timer */
-            ESP_LOGI(TAG, "Start one-shot timer for %ds to enter the deep sleep", param_before_sleep);
+            ESP_LOGI(TAG_deep_sleep, "Start one-shot timer for %ds to enter the deep sleep", param_before_sleep);
             ESP_ERROR_CHECK(esp_timer_start_once(s_oneshot_timer, param_before_sleep * 1000000));
-            break;
-        default:
-            ESP_LOGI(TAG, "Unprocessed event %d", e.type);
         }
+        vTaskDelay(param_before_sleep * 1000000 / portTICK_PERIOD_MS);
     }
 }
 
 void deep_sleep(const char *sensor, const char *cluster, int EP, const TaskParameters *taskParams)
 {
-
-    ESP_LOGW(TAG, "Task: %s created. Cluster: %s EP: %d", sensor, cluster, EP);
+    ESP_LOGW(TAG_deep_sleep, "Task: %s created. Cluster: %s EP: %d", sensor, cluster, EP);
     xTaskCreate(deep_sleep_task, taskParams->param_id, 4096, taskParams, 5, NULL);
 }

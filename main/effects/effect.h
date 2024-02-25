@@ -1,7 +1,7 @@
 #ifndef MEEF_EFFECT_H_
 #define MEEF_EFFECT_H_
 
-#include "common.h"
+#include "../utils/common.h"
 #include <framebuffer.h>
 
 typedef enum {

@@ -1,3 +1,4 @@
+#include <stdint.h>
 #include "zigbee_init.h"
 #include "zcl/esp_zigbee_zcl_common.h"
 #include "esp_check.h"
@@ -19,15 +20,57 @@
 #include "esp_pm.h"
 #include "esp_private/esp_clk.h"
 #endif
+#include "../modules/exec/led_light/light.h"
+
 extern cJSON *sensor_json;
 extern cJSON *settings_json;
+
 /*------ Clobal definitions -----------*/
 static char manufacturer[16], model[16], firmware_version[16];
 bool time_updated = false;
 char strftime_buf[64];
 static const char *TAG_zigbee = "ZIGBEE";
 
-// static light_data_t light_data;
+//---------led_light----------/
+// Определение структуры для хранения списка led_light и его индекса
+typedef struct
+{
+    int index;
+    light_data_t *light;
+} light_dataInfo;
+
+#define MAX_LIGHTS 10
+light_dataInfo lights[MAX_LIGHTS];
+// Функция для получения существующего списка led_light  или создания нового
+light_data_t *get_existing_or_create_new_light(int index)
+{
+    if (index < 0 || index >= MAX_LIGHTS)
+    {
+        // Обработка недопустимого индекса
+        return NULL;
+    }
+    // Получение информации о списке led_light по заданному индексу
+    light_dataInfo *info = &lights[index];
+    // Проверка существования списка led_light
+    if (!info->light)
+    {
+        // Если список led_light не существует, то создаем новый
+        light_data_t *new_light = malloc(sizeof(light_data_t));
+        // light_data_t *new_light = NULL;
+        new_light->status = 0;
+        new_light->level = 0;
+        new_light->color_h = 0;
+        new_light->color_s = 0;
+        new_light->color_x = 0;
+        new_light->color_y = 0;
+        new_light->color_mode = 0;
+        new_light->crc = 0;
+        info->light = new_light;
+        info->index = index;
+    }
+    // Возвращаем существующий или только что созданный led_light
+    return info->light;
+}
 
 static uint16_t color_capabilities = 0x0009;
 // Инициализируем состояние батареи для батарейных девайсов
@@ -118,7 +161,7 @@ static esp_err_t zb_attribute_handler(const esp_zb_zcl_set_attr_value_message_t 
                     int EP = ep_->valueint;
                     int saveState = saveState_->valueint;
                     // RELE
-                    if (message->info.dst_endpoint == EP && strcmp(cluster, "on_off") == 0 && strcmp(sensor, "rele") == 0)
+                    if (message->info.dst_endpoint == EP && strcmp(cluster, "switch") == 0 && strcmp(sensor, "rele") == 0)
                     {
                         int pin = cJSON_GetObjectItemCaseSensitive(item, "pin")->valueint;
                         rele_state = message->attribute.data.value ? *(bool *)message->attribute.data.value : rele_state;
@@ -221,9 +264,11 @@ static esp_err_t zb_action_handler(esp_zb_core_action_callback_id_t callback_id,
     {
     case ESP_ZB_CORE_SET_ATTR_VALUE_CB_ID:
         ret = zb_attribute_handler((esp_zb_zcl_set_attr_value_message_t *)message);
+        ESP_LOGW(TAG_zigbee, "Receive zb_attribute_handler");
         break;
     case ESP_ZB_CORE_CMD_READ_ATTR_RESP_CB_ID:
         ret = zb_read_attr_resp_handler((esp_zb_zcl_cmd_read_attr_resp_message_t *)message);
+        ESP_LOGW(TAG_zigbee, "Receive zb_read_attr_resp_handler ");
         break;
     default:
         ESP_LOGW(TAG_zigbee, "Receive Zigbee action(0x%x) callback", callback_id);
@@ -280,9 +325,10 @@ void esp_zb_app_signal_handler(esp_zb_app_signal_t *signal_struct)
                      esp_zb_get_pan_id(), esp_zb_get_current_channel());
             read_server_time();
 
-            bus_send_event(EVENT_ZIGBEE_UP, NULL, 0);
+            //            bus_send_event(EVENT_ZIGBEE_UP, NULL, 0);
             // Восстанавливаем состояние RELE и публикуем в zigbee cеть
             sensor_gpioOUT(sensor_json, 1);
+            bus_send_event(EVENT_ZIGBEE_UP, NULL, 0);
         }
         break;
     case ESP_ZB_ZDO_SIGNAL_LEAVE:
@@ -297,8 +343,8 @@ void esp_zb_app_signal_handler(esp_zb_app_signal_t *signal_struct)
     case ESP_ZB_COMMON_SIGNAL_CAN_SLEEP:
         if (sys_settings.zigbee.zigbee_conected == true && sys_settings.zigbee.zigbee_light_sleep == true)
         {
-            ESP_LOGI(TAG, "Zigbee can sleep");
-            esp_zb_sleep_now();
+            //   ESP_LOGI(TAG, "Zigbee can sleep");
+            //   esp_zb_sleep_now();
         }
         break;
     default:
@@ -382,7 +428,7 @@ void createAttributes(esp_zb_cluster_list_t *esp_zb_cluster_list, char *cluster,
         esp_zb_pressure_meas_cluster_add_attr(esp_zb_press_meas_cluster, ESP_ZB_ZCL_ATTR_PRESSURE_MEASUREMENT_MAX_VALUE_ID, &undefined_value);
         esp_zb_cluster_list_add_pressure_meas_cluster(esp_zb_cluster_list, esp_zb_press_meas_cluster, ESP_ZB_ZCL_CLUSTER_SERVER_ROLE);
     }
-    else if (strcmp(cluster, "on_off") == 0)
+    else if (strcmp(cluster, "switch") == 0)
     {
         // ------------------------------ Cluster on_off ------------------------------
         esp_zb_on_off_cluster_cfg_t on_off_cfg = {
@@ -766,6 +812,10 @@ static void esp_zb_task(void *pvParameters)
                 createAttributes(esp_zb_cluster_list, "humidity", EP);
                 createAttributes(esp_zb_cluster_list, "pressure", EP);
             }
+            else if (strcmp(sensor, "led_light") == 0 && strcmp(cluster, "all") == 0)
+            {
+                light_data_t *light = get_existing_or_create_new_light(EP);
+            }
             else
             {
                 createAttributes(esp_zb_cluster_list, cluster, EP);
@@ -781,6 +831,17 @@ static void esp_zb_task(void *pvParameters)
             esp_zb_ep_list_add_ep(esp_zb_ep_list, cluster_lists[i].cluster_list, i, ESP_ZB_AF_HA_PROFILE_ID, ESP_ZB_HA_SIMPLE_SENSOR_DEVICE_ID);
         }
     }
+    for (int i = 0; i < MAX_LIGHTS; i++)
+    {
+        if (lights[i].light)
+        {
+            //   printf("Light at index %d: %u\n", EP, lights[i].light->status);
+            //   light_init(&lights[i].light, 8);
+        }
+    }
+    // static light_data_t light_data;
+    // light_init(&light_data, 8);
+
     //---------------------------------------------------------------------------------------------------------------//
     esp_zb_device_register(esp_zb_ep_list);
     esp_zb_core_action_handler_register(zb_action_handler);

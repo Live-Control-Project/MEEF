@@ -7,10 +7,29 @@
 #include "settings.h"
 #include "utils/bus.h"
 
-static esp_netif_t *iface = NULL;
+// получаем MAC адрес
+#define MAC_ADDR_SIZE 6
+uint8_t mac_address[MAC_ADDR_SIZE] = {0x00, 0x11, 0x22, 0x33, 0x44, 0x55};
+static char *get_mac_address()
+{
+    uint8_t mac[MAC_ADDR_SIZE];
+    esp_wifi_get_mac(ESP_IF_WIFI_STA, mac);
+    static char char_mac_address[18]; // 17 characters for MAC address and 1 for null terminator
+    sprintf(char_mac_address, "%02x%02x%02x-%02x%02x%02x", mac[0], mac[1], mac[2], mac[3], mac[4], mac[5]);
+    // Convert the MAC address string to uppercase
+    for (int i = 0; i < 17; i++)
+    {
+        char_mac_address[i] = toupper(char_mac_address[i]);
+    }
 
+    ESP_LOGI(TAG, "MAC address: %s", char_mac_address);
+    return char_mac_address;
+}
+
+static esp_netif_t *iface = NULL;
 static void log_ip_info()
 {
+
     if (!iface)
         return;
 
@@ -30,6 +49,7 @@ static void log_ip_info()
         ESP_LOGI(TAG, "DNS %d:      " IPSTR, t, IP2STR(&dns.ip.u_addr.ip4));
     }
     ESP_LOGI(TAG, "--------------------------------------------------");
+    strcpy(sys_settings.wifi.STA_MAC, get_mac_address());
 }
 
 static void set_ip_info()
@@ -85,10 +105,12 @@ static void wifi_handler(void *arg, esp_event_base_t event_base, int32_t event_i
         break;
     case WIFI_EVENT_STA_CONNECTED:
         ESP_LOGI(TAG, "WiFi connected to '%s'", sys_settings.wifi.sta.ssid);
+        sys_settings.wifi.STA_conected = true;
         set_ip_info();
         break;
     case WIFI_EVENT_STA_DISCONNECTED:
         ESP_LOGI(TAG, "WiFi disconnected, reconnecting...");
+        sys_settings.wifi.STA_conected = false;
         bus_send_event(EVENT_NETWORK_DOWN, NULL, 0);
         if ((res = esp_wifi_connect()) != ESP_OK)
             ESP_LOGE(TAG, "WiFi error %d [%s]", res, esp_err_to_name(res));
