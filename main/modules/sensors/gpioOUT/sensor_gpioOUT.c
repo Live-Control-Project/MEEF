@@ -46,10 +46,10 @@ void sensor_gpioOUT(cJSON *sensor_json, int zigbee_init)
             int saveState = saveState_->valueint;
             if (strcmp(cluster, "switch") == 0 && strcmp(sensor, "rele") == 0)
             {
-                if ((pin >= 4 && pin <= 7) || (pin >= 12 && pin <= 13) || (pin >= 16 && pin <= 17) || (pin >= 18) || (pin == 9))
+                if (pin == 9 || (pin >= 12 && pin <= 13) || (pin >= 16 && pin <= 17))  
                 {
                     ESP_LOGW(TAG, "Error while selecting output pin: %d. Cluster: %s EP: %d won't work.", pin, cluster, ep);
-                    ESP_LOGW(TAG, "DON'T USE: 4-7 Fast SPI, 9 BOOT, 12-13 USB, 16-17 UART, 18-23 SDIO");
+                    ESP_LOGW(TAG, "DON'T USE: 9 BOOT, 12-13 USB, 16-17 UART");
                 }
                 else
                 {
@@ -57,6 +57,7 @@ void sensor_gpioOUT(cJSON *sensor_json, int zigbee_init)
                     {
                         ESP_LOGW(TAG, "Task: %s created. Cluster: %s EP: %d", sensor, cluster, ep);
                     }
+                    gpio_reset_pin(pin); //helps for pins (>=18 and <=23) or (>=4 and <=7)
                     gpio_set_direction(pin, GPIO_MODE_OUTPUT);
                     gpio_set_pull_mode(pin, GPIO_PULLDOWN_ONLY);
                     // Чтение INT из NVS
