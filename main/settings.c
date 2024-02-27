@@ -325,7 +325,7 @@ static esp_err_t storage_save_spiffs(const char *storage_name, const void *sourc
     cJSON_AddNumberToObject(leds, "current_limit", sys_settings.leds.current_limit);
 
     char *json_str = cJSON_Print(root);
-    const char *base_path = "/spiffs_storage/config.json";
+    const char *base_path = "/spiffs_storage/settings.json";
     writeFile(base_path, "w", json_str);
     free(json_str);
     cJSON_Delete(root);
