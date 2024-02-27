@@ -6,9 +6,10 @@
 #include "effect.h"
 
 #define FRAME_TICKS (pdMS_TO_TICKS(1000 / vol_settings.fps))
-#define BIT_READY   BIT(0)
+#define BIT_READY BIT(0)
 #define BIT_PLAYING BIT(1)
 #define APP_CPU_NUM 0
+/* - AVAKS -
 static const int rmt_gpio[MAX_SURFACE_BLOCKS] = {
     CONFIG_EL_MATRIX_GPIO_0,
     CONFIG_EL_MATRIX_GPIO_1,
@@ -181,10 +182,11 @@ esp_err_t surface_init()
         vol_settings.effect = CONFIG_EL_EFFECT_DEFAULT;
     return surface_set_effect(vol_settings.effect);
 }
-
+*/
 bool surface_is_playing()
 {
-    return xEventGroupGetBits(state) & BIT_PLAYING;
+    //-AVAKS-    return xEventGroupGetBits(state) & BIT_PLAYING;
+    return ESP_OK;
 }
 
 esp_err_t surface_prepare_effect(size_t effect)
@@ -193,7 +195,7 @@ esp_err_t surface_prepare_effect(size_t effect)
         return ESP_OK;
 
     CHECK(surface_pause());
-    CHECK(effects[effect].prepare(&framebuffer));
+    //-AVAKS-    CHECK(effects[effect].prepare(&framebuffer));
     CHECK(surface_play());
 
     return ESP_OK;
@@ -204,7 +206,7 @@ esp_err_t surface_pause()
     if (!surface_is_playing())
         return ESP_OK;
 
-    xEventGroupClearBits(state, BIT_PLAYING);
+    //-AVAKS-    xEventGroupClearBits(state, BIT_PLAYING);
     vTaskDelay(FRAME_TICKS + 1);
 
     ESP_LOGI(TAG, "Animation paused");
@@ -216,11 +218,11 @@ esp_err_t surface_stop()
 {
     CHECK(surface_pause());
 
-    CHECK(fb_begin(&framebuffer));
-    CHECK(fb_clear(&framebuffer));
-    CHECK(fb_end(&framebuffer));
+    //-AVAKS-    CHECK(fb_begin(&framebuffer));
+    //-AVAKS-    CHECK(fb_clear(&framebuffer));
+    //-AVAKS-    CHECK(fb_end(&framebuffer));
 
-    CHECK(fb_render(&framebuffer, NULL));
+    //-AVAKS-    CHECK(fb_render(&framebuffer, NULL));
 
     ESP_LOGI(TAG, "Animation stopped");
 
@@ -232,7 +234,7 @@ esp_err_t surface_play()
     if (surface_is_playing())
         return ESP_OK;
 
-    xEventGroupSetBits(state, BIT_PLAYING);
+    //-AVAKS-    xEventGroupSetBits(state, BIT_PLAYING);
     ESP_LOGI(TAG, "Animation started");
 
     return ESP_OK;
@@ -248,8 +250,8 @@ esp_err_t surface_set_effect(size_t num)
     if (vol_settings_save() != ESP_OK)
         ESP_LOGW(TAG, "Could not save volatile settings");
 
-    if (effects[num].prepare)
-        CHECK(effects[num].prepare(&framebuffer));
+    //-AVAKS-    if (effects[num].prepare)
+    //-AVAKS-        CHECK(effects[num].prepare(&framebuffer));
 
     CHECK(surface_play());
 
@@ -261,8 +263,8 @@ esp_err_t surface_set_effect(size_t num)
 esp_err_t surface_next_effect()
 {
     return surface_set_effect(vol_settings.effect < effects_count - 1
-            ? vol_settings.effect + 1
-            : 0);
+                                  ? vol_settings.effect + 1
+                                  : 0);
 }
 
 esp_err_t surface_set_brightness(uint8_t val)
@@ -283,8 +285,10 @@ esp_err_t surface_set_brightness(uint8_t val)
 esp_err_t surface_increment_brightness(int8_t val)
 {
     int16_t b = (int16_t)(vol_settings.brightness + val);
-    if (b < 0) b = 0;
-    else if (b > 255) b = 255;
+    if (b < 0)
+        b = 0;
+    else if (b > 255)
+        b = 255;
     return surface_set_brightness(b);
 }
 

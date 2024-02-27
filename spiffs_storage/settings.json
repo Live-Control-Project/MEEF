@@ -1,0 +1,47 @@
+{
+    "device": {
+        "devicename": "zigbee DIY"
+    },
+    "wifi": {
+        "mode": 1,
+        "wifi_present": true,
+        "wifi_enabled": true,
+        "ip": {
+            "dhcp": true,
+            "ip": "192.168.4.1",
+            "staip": "192.168.0.171",
+            "netmask": "255.255.255.0",
+            "gateway": "192.168.4.1",
+            "dns": "192.168.4.1"
+        },
+        "ap": {
+            "ssid": "MEEF",
+            "channel": 6,
+            "password": ""
+        },
+        "sta": {
+            "ssid": "perenio",
+            "password": "4455667788"
+        }
+    },
+    "zigbee": {
+        "zigbee_present": true,
+        "zigbee_enabled": false,
+        "modelname": "zigbee DIY",
+        "manufactuer": "MEEF",
+        "manufactuer_id": "0x1001",
+        "zigbee_router": true,
+        "zigbee_dc_power": false,
+        "zigbee_light_sleep": false
+    },
+    "mqtt": {
+        "mqtt_enabled": true,
+        "mqtt_conected": false,
+        "server": "",
+        "port": 1082320940,
+        "prefx": "",
+        "user": "",
+        "password": "",
+        "path": ""
+    }
+}

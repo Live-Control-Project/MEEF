@@ -1,5 +1,5 @@
 {
-    "idf.portWin": "COM5",
+    "idf.portWin": "COM13",
     "idf.flashType": "UART",
     "files.associations": {
         "zboss_api.h": "c",
@@ -31,7 +31,11 @@
         "sensor_ds18x20.h": "c",
         "esp_zigbee_zcl_power_config.h": "c",
         "adc_cali_scheme.h": "c",
-        "esp_zb_sleepy_end_device.h": "c"
+        "esp_zb_sleepy_end_device.h": "c",
+        "common.h": "c",
+        "sensor_gpioout.h": "c",
+        "send_data.h": "c",
+        "mqtt.h": "c"
     },
     "idf.adapterTargetName": "esp32c6",
     "C_Cpp.errorSquiggles": "disabled",

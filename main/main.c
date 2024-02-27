@@ -1,4 +1,4 @@
-#include "common.h"
+#include "utils/common.h"
 #include "settings.h"
 #include "esp_spiffs.h"
 #include "effects/effect.h"
@@ -9,6 +9,7 @@
 #include "utils/bus.h"
 #include "utils/spiffs.h"
 #include "zigbee/zigbee_init.h"
+#include "wifi/mqtt.h"
 #include "modules/sensor_init.h"
 
 cJSON *sensor_json = NULL;
@@ -94,12 +95,21 @@ static void main_loop(void *arg)
             err = webserver_restart();
             if (err != ESP_OK)
                 ESP_LOGW(TAG, "Error starting HTTPD: %d (%s)", err, esp_err_to_name(err));
+
+            if (!sys_settings.zigbee.zigbee_present || !sys_settings.zigbee.zigbee_enabled)
+            {
+                // Инициализация датчиков \ сенсоров
+                sensor_init();
+            }
+            /* Start MQTT service */
+            if (sys_settings.mqtt.mqtt_enabled == true && sys_settings.wifi.STA_conected)
+            {
+                ESP_ERROR_CHECK(mqtt_app_start());
+            }
             // Инициализация zigbee после старта WiFi
             if (sys_settings.zigbee.zigbee_present && sys_settings.zigbee.zigbee_enabled)
             {
                 zigbee_init();
-                // Инициализация датчиков \ сенсоров
-                sensor_init();
             }
 
             break;
@@ -113,6 +123,9 @@ static void main_loop(void *arg)
         case EVENT_ZIGBEE_UP:
             ESP_LOGI(TAG, "ZIGBEE_UP");
             sys_settings.zigbee.zigbee_conected = true;
+
+            // Инициализация датчиков \ сенсоров
+            sensor_init();
             break;
 
         default:
@@ -231,10 +244,8 @@ void load_element_json(const char base_path)
 void app_main()
 {
     ESP_LOGI(TAG, "Starting " APP_NAME);
+
     ESP_LOGI(TAG, "Free heap: %lu bytes", esp_get_free_heap_size());
-    sys_settings.wifi.wifi_conected = false;
-    sys_settings.zigbee.zigbee_conected = false;
-    sys_settings.mqtt.mqtt_conected = false;
     // Initialize NVS
     ESP_ERROR_CHECK(settings_init());
     // Load system settings from NVS
@@ -249,6 +260,11 @@ void app_main()
 
     // Initialize bus
     ESP_ERROR_CHECK(bus_init());
+
+    sys_settings.wifi.wifi_conected = false;
+    sys_settings.zigbee.zigbee_conected = false;
+    sys_settings.mqtt.mqtt_conected = false;
+    sys_settings.wifi.STA_conected = false;
 
     // Initialize input
     ESP_ERROR_CHECK(input_init());
@@ -271,8 +287,6 @@ void app_main()
     if (!sys_settings.wifi.wifi_enabled && sys_settings.zigbee.zigbee_present && sys_settings.zigbee.zigbee_enabled)
     {
         zigbee_init();
-        // Инициализация датчиков \ сенсоров
-        sensor_init();
     }
 
     ESP_LOGI(TAG, "[APP] Free memory: %" PRIu32 " Kb", esp_get_free_heap_size() / 1024);

@@ -28,6 +28,8 @@ static system_settings_t sys_defaults = {
         .wifi_present = true,
         .wifi_enabled = true,
         .wifi_conected = false,
+        .STA_conected = false,
+        .STA_MAC = "",
         .ip = {
             .dhcp = DEFAULT_WIFI_DHCP,
             .ip = CONFIG_EL_WIFI_IP,
@@ -55,7 +57,7 @@ static system_settings_t sys_defaults = {
         .manufactuer_id = "0x1001",
     },
     .mqtt = {
-        .mqtt_enabled = false,
+        .mqtt_enabled = true,
         .mqtt_conected = false,
         .server = "",
         .port = 1883,
@@ -146,7 +148,7 @@ static esp_err_t storage_save(const char *storage_name, const void *source, size
 
 esp_err_t settings_init()
 {
-
+    // nvs_flash_erase();
     esp_err_t res = nvs_flash_init();
     if (res == ESP_ERR_NVS_NO_FREE_PAGES || res == ESP_ERR_NVS_NEW_VERSION_FOUND)
     {
@@ -323,7 +325,7 @@ static esp_err_t storage_save_spiffs(const char *storage_name, const void *sourc
     cJSON_AddNumberToObject(leds, "current_limit", sys_settings.leds.current_limit);
 
     char *json_str = cJSON_Print(root);
-    const char *base_path = "/spiffs_storage/config.json";
+    const char *base_path = "/spiffs_storage/settings.json";
     writeFile(base_path, "w", json_str);
     free(json_str);
     cJSON_Delete(root);

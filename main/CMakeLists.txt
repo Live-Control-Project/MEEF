@@ -1,24 +1,20 @@
-#set(EMBED ../files)
 
 idf_component_register(
 	INCLUDE_DIRS .
 	SRCS
-		common.c
 		main.c
 		settings.c
-		effects/effect.c
-		effects/surface.c
-		effects/input.c
-		effects/palettes.c
 		wifi/wifi.c
 		wifi/webserver.c
 		wifi/api.c
+		wifi/mqtt.c
 		utils/bus.c
 		utils/utils.c
 		utils/spiffs.c
 		utils/nvs.c
 		utils/json.c
 		utils/send_data.c
+		utils/common.c
 		zigbee/zigbee_init.c
 		modules/sensor_init.c
 		modules/sensors/gpioOUT/sensor_gpioOUT.c
@@ -30,8 +26,16 @@ idf_component_register(
 
 		modules/virtual/battary/battary.c
 		modules/virtual/deepsleep/deepsleep.c
-		#modules/virtual/lightsleep/lightsleep.c
+		
+		modules/exec/led_light/led_light.c
+		modules/exec/led_light/light.c
+		modules/exec/led_light/crc16.c
 
+		effects/effect.c
+		effects/surface.c
+		effects/input.c
+		effects/palettes.c
+		
 		effects/crazybees.c
 		effects/dna.c
 		effects/fire.c
@@ -65,24 +69,6 @@ idf_component_register(
 		effects/octopus.c
 		effects/nuclear.c
 
-#	EMBED_TXTFILES
-#		${EMBED}/web/jquery.js
-#		${EMBED}/web/styles.css
-#		${EMBED}/web/index.html
-		
-#	EMBED_FILES
-#		${EMBED}/gifs/heart.gif
-#		${EMBED}/gifs/heart2.gif
-#		${EMBED}/gifs/boldman.gif
-#		${EMBED}/gifs/coin.gif
-#		${EMBED}/gifs/disk.gif
-#		${EMBED}/gifs/girl.gif
-#		${EMBED}/gifs/hairyman.gif
-#		${EMBED}/gifs/hero.gif
-#		${EMBED}/gifs/disk.gif
-#		${EMBED}/gifs/torch.gif
-#		${EMBED}/gifs/zombie.gif
-#		${EMBED}/gifs/cutebear.gif
 
 		
 )

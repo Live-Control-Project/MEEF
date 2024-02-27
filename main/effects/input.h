@@ -1,9 +1,10 @@
 #ifndef MEEF_INPUT_H_
 #define MEEF_INPUT_H_
 
-#include "common.h"
+#include "../utils/common.h"
 
-enum {
+enum
+{
     INPUT_BTN_MAIN = 0,
     INPUT_BTN_RESET,
     INPUT_BTN_UP,

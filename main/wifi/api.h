@@ -1,7 +1,7 @@
 #ifndef MEEF_API_H_
 #define MEEF_API_H_
 
-#include "common.h"
+#include "../utils/common.h"
 #include <esp_http_server.h>
 
 // API Handlers
