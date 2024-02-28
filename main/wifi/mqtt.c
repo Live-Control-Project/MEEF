@@ -266,8 +266,8 @@ esp_err_t mqtt_app_start(void)
     }*/
     esp_mqtt_client_config_t mqtt_cfg = {
         .broker.address.uri = sys_settings.mqtt.server,
-        .broker.address.port = sys_settings.mqtt.port,
-        .broker.address.path = sys_settings.mqtt.path,
+        // .broker.address.port = sys_settings.mqtt.port,
+        // .broker.address.path = sys_settings.mqtt.path,
         .credentials.username = sys_settings.mqtt.user,
         .credentials.authentication.password = sys_settings.mqtt.password,
 
