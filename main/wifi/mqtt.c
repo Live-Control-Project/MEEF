@@ -265,12 +265,12 @@ esp_err_t mqtt_app_start(void)
         // return ESP_FAIL;
     }*/
     esp_mqtt_client_config_t mqtt_cfg = {
-        .broker.address.uri = "mqtt://192.168.0.206:1883",
-        //.credentials.username = "avaks:dacha",
-        //.credentials.authentication.password = "ivfmqQJ5",
-        //.broker.address.uri = mqtt_url,
-        // .credentials.username = mqtt_login,
-        //.credentials.authentication.password = mqtt_pwd,
+        .broker.address.uri = sys_settings.mqtt.server,
+        .broker.address.port = sys_settings.mqtt.port,
+        .broker.address.path = sys_settings.mqtt.path,
+        .credentials.username = sys_settings.mqtt.user,
+        .credentials.authentication.password = sys_settings.mqtt.password,
+
     };
 
     esp_mqtt_client_handle_t client = esp_mqtt_client_init(&mqtt_cfg);

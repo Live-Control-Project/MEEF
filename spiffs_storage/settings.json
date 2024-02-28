@@ -3,13 +3,13 @@
         "devicename": "zigbee DIY"
     },
     "wifi": {
-        "mode": 1,
+        "mode": 0,
         "wifi_present": true,
         "wifi_enabled": true,
         "ip": {
             "dhcp": true,
             "ip": "192.168.4.1",
-            "staip": "192.168.0.171",
+            "staip": "",
             "netmask": "255.255.255.0",
             "gateway": "192.168.4.1",
             "dns": "192.168.4.1"
@@ -35,7 +35,7 @@
         "zigbee_light_sleep": false
     },
     "mqtt": {
-        "mqtt_enabled": true,
+        "mqtt_enabled": false,
         "mqtt_conected": false,
         "server": "",
         "port": 1082320940,

@@ -56,12 +56,12 @@ typedef struct
     {
         bool mqtt_enabled;
         bool mqtt_conected;
-        char server[16];
+        char server[32];
         int port;
-        char prefx[16];
-        char user[16];
-        char password[16];
-        char path[16];
+        char prefx[64];
+        char user[23];
+        char password[32];
+        char path[64];
 
     } mqtt;
     struct
