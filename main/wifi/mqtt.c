@@ -117,22 +117,36 @@ void publis_elements(void)
         item = item->next;
     }
     cJSON_AddStringToObject(data, "id", sys_settings.wifi.STA_MAC);
-    cJSON_AddStringToObject(data, "name", "ESP32-C6");
+    cJSON_AddStringToObject(data, "name", sys_settings.device.devicename);
     cJSON_AddBoolToObject(data, "real", true);
     cJSON_AddStringToObject(element, "device", sys_settings.wifi.STA_MAC);
 
     // Публикуем все элементы
-    const char *topic = "/homed/command/custom";
+    const char *mqttPrefx = sys_settings.mqtt.prefx;
+    const char *topic = "/command/custom";
+    char completeTopic[strlen(mqttPrefx) + strlen(topic) + 1];
+    strcpy(completeTopic, mqttPrefx);
+    strcat(completeTopic, topic);
+    // const char *topic = "/homed/command/custom";
     const char *jsonData = cJSON_PrintUnformatted(element);
-    esp_mqtt_client_publish(client, topic, jsonData, 0, 0, 0);
+    esp_mqtt_client_publish(client, completeTopic, jsonData, 0, 0, 0);
+
     // Публикуем доступность устойства
-    topic = "/homed/device/custom/";
+    mqttPrefx = sys_settings.mqtt.prefx;
+    topic = "/device/custom/";
     const char *deviceName = sys_settings.wifi.STA_MAC;
-    char completeTopic[strlen(topic) + strlen(deviceName) + 1];
-    strcpy(completeTopic, topic);
-    strcat(completeTopic, deviceName);
+    char completeTopic2[strlen(mqttPrefx) + strlen(topic) + strlen(deviceName) + 1];
+    strcpy(completeTopic2, mqttPrefx);
+    strcat(completeTopic2, topic);
+    strcat(completeTopic2, deviceName);
+
+    // topic = "/homed/device/custom/";
+    // const char *deviceName = sys_settings.wifi.STA_MAC;
+    // char completeTopic[strlen(topic) + strlen(deviceName) + 1];
+    // strcpy(completeTopic, topic);
+    // strcat(completeTopic, deviceName);
     jsonData = "{\"status\":\"online\"}";
-    esp_mqtt_client_publish(client, completeTopic, jsonData, 0, 0, 1);
+    esp_mqtt_client_publish(client, completeTopic2, jsonData, 0, 0, 1);
     cJSON_Delete(element); // Free cJSON object
 }
 
@@ -161,8 +175,8 @@ void mqtt_event_handler(void *handler_args, esp_event_base_t base, int32_t event
     client = event->client;
     int msg_id;
 
-    const char *topic = sys_settings.mqtt.path;
-    const char *topicIN = "/homed/td/custom/";
+    const char *topic = sys_settings.mqtt.prefx;
+    const char *topicIN = "/td/custom/";
     const char *deviceName = sys_settings.wifi.STA_MAC;
     char completeTopic[strlen(topic) + strlen(topicIN) + strlen(deviceName) + 1];
     strcpy(completeTopic, topic);      // Copy the first string
@@ -175,7 +189,7 @@ void mqtt_event_handler(void *handler_args, esp_event_base_t base, int32_t event
         ESP_LOGI(TAG_MQTT, "MQTT_EVENT_CONNECTED");
         MQTT_CONNEECTED = 1;
         msg_id = esp_mqtt_client_subscribe(client, completeTopic, 0);
-        ESP_LOGI(TAG_MQTT, "sent subscribe successful to %s, msg_id=%d", completeTopic, msg_id);
+        ESP_LOGI(TAG_MQTT, "subscribe successful to %s, msg_id=%d", completeTopic, msg_id);
         sys_settings.mqtt.mqtt_conected = true;
         publis_elements();
         break;
@@ -199,7 +213,7 @@ void mqtt_event_handler(void *handler_args, esp_event_base_t base, int32_t event
         printf("TOPIC=%.*s\r\n", event->topic_len, event->topic);
         printf("DATA=%.*s\r\n", event->data_len, event->data);
 
-        send_data(event->data, 1, "swith");
+        // send_data(event->data, 1, "swith");
 
         break;
     case MQTT_EVENT_ERROR:
@@ -217,38 +231,14 @@ void mqtt_event_handler(void *handler_args, esp_event_base_t base, int32_t event
         break;
     }
 }
-/*
-esp_err_t load_mqtt_data_from_NVS()
-{
-    // load key & value from NVS
-    esp_err_t err = load_key_value("mqtt_url=", mqtt_url, sizeof(mqtt_url));
-    if (err != ESP_OK)
-    {
-        ESP_LOGE(TAG_MQTT, "Error (%s) loading from NVS", esp_err_to_name(err));
-    }
 
-    err = load_key_value("mqtt_login=", mqtt_login, sizeof(mqtt_login));
-    if (err != ESP_OK)
-    {
-        ESP_LOGE(TAG_MQTT, "Error (%s) loading from NVS", esp_err_to_name(err));
-    }
-
-    err = load_key_value("mqtt_pwd=", mqtt_pwd, sizeof(mqtt_pwd));
-    if (err != ESP_OK)
-    {
-        ESP_LOGE(TAG_MQTT, "Error (%s) loading from NVS", esp_err_to_name(err));
-    }
-
-    return err;
-}
-*/
 void Publisher_Task(void *params)
 {
     while (true)
     {
         if (MQTT_CONNEECTED)
         {
-            esp_mqtt_client_publish(client, "/topic/test3", "Helllo World", 0, 0, 0);
+            //  esp_mqtt_client_publish(client, "/topic/test3", "Helllo World", 0, 0, 0);
         }
         vTaskDelay(10000 / portTICK_PERIOD_MS);
     }
@@ -256,24 +246,29 @@ void Publisher_Task(void *params)
 
 esp_err_t mqtt_app_start(void)
 {
-    // ESP_LOGI(TAG_MQTT, "MAC (%s)", sys_settings.wifi.STA_MAC);
-    /*
-    esp_err_t err = load_mqtt_data_from_NVS();
-    if (err != ESP_OK)
-    {
-        ESP_LOGI(TAG_MQTT, "Credentials not loaded, mqtt start skip.");
-        // return ESP_FAIL;
-    }*/
+    // Публикуем доступность устойства
+    const char *mqttPrefx = sys_settings.mqtt.prefx;
+    const char *topic = "/device/custom/";
+    const char *deviceName = sys_settings.wifi.STA_MAC;
+    char completeTopiclwt[strlen(mqttPrefx) + strlen(topic) + strlen(deviceName) + 1];
+    strcpy(completeTopiclwt, mqttPrefx);
+    strcat(completeTopiclwt, topic);
+    strcat(completeTopiclwt, deviceName);
+
     esp_mqtt_client_config_t mqtt_cfg = {
         .broker.address.uri = sys_settings.mqtt.server,
         // .broker.address.port = sys_settings.mqtt.port,
         // .broker.address.path = sys_settings.mqtt.path,
         .credentials.username = sys_settings.mqtt.user,
         .credentials.authentication.password = sys_settings.mqtt.password,
-
+        .session.last_will.msg = "{\"status\":\"offline\"}",
+        .session.last_will.topic = completeTopiclwt, // Set your last will topic
+        .session.last_will.qos = 1,
+        .session.last_will.retain = true,
     };
 
     esp_mqtt_client_handle_t client = esp_mqtt_client_init(&mqtt_cfg);
+
     /* The last argument may be used to pass data to the event handler, in this example mqtt_event_handler */
     ESP_ERROR_CHECK(esp_mqtt_client_register_event(client, ESP_EVENT_ANY_ID, mqtt_event_handler, NULL));
     ESP_ERROR_CHECK(esp_mqtt_client_start(client));

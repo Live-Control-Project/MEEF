@@ -854,7 +854,7 @@ static esp_err_t post_settings_wifi(httpd_req_t *req)
     memset(sys_settings.mqtt.path, 0, sizeof(sys_settings.mqtt.path));
     strncpy((char *)sys_settings.mqtt.path, mqtt_path, sizeof(sys_settings.mqtt.path) - 1);
 
-    ESP_LOGI(TAG, "Settings saved, reboot to apply %d %d", sys_settings.mqtt.port, port);
+    ESP_LOGI(TAG, "Settings saved, reboot to apply ");
     err = sys_settings_save_nvs();
     // err = sys_settings_save_spiffs();
     msg = err != ESP_OK
