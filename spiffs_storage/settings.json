@@ -3,7 +3,7 @@
         "devicename": "zigbee DIY"
     },
     "wifi": {
-        "mode": 1,
+        "mode": 0,
         "wifi_present": true,
         "wifi_enabled": true,
         "ip": {

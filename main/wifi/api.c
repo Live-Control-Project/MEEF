@@ -426,10 +426,12 @@ static esp_err_t post_settings_wifi(httpd_req_t *req)
 {
     const char *msg = NULL;
     cJSON *json = NULL;
-
     esp_err_t err = parse_post_json(req, &msg, &json);
     if (err != ESP_OK)
         goto exit;
+
+    // char *json_string = cJSON_Print(json);
+    // printf("JSON Data: %s\n", json_string);
 
     cJSON *device = cJSON_GetObjectItem(json, "device");
     cJSON *devicename_item = cJSON_GetObjectItem(device, "devicename");
@@ -705,13 +707,16 @@ static esp_err_t post_settings_wifi(httpd_req_t *req)
         err = ESP_ERR_INVALID_ARG;
         goto exit;
     }
-    cJSON *mqtt_conected_item = cJSON_GetObjectItem(mqtt, "mqtt_conected");
-    if (!cJSON_IsBool(mqtt_conected_item))
-    {
-        msg = "Item `mqtt_conected` not found or invalid";
-        err = ESP_ERR_INVALID_ARG;
-        goto exit;
-    }
+    /*
+     cJSON *mqtt_conected_item = cJSON_GetObjectItem(mqtt, "mqtt_conected");
+     if (!cJSON_IsBool(mqtt_conected_item))
+     {
+         msg = "Item `mqtt_conected` not found or invalid";
+         err = ESP_ERR_INVALID_ARG;
+         goto exit;
+     }
+
+ */
     cJSON *server_item = cJSON_GetObjectItem(mqtt, "server");
     if (!cJSON_IsString(server_item))
     {
@@ -727,6 +732,7 @@ static esp_err_t post_settings_wifi(httpd_req_t *req)
         err = ESP_ERR_INVALID_ARG;
         goto exit;
     }
+
     cJSON *port_item = cJSON_GetObjectItem(mqtt, "port");
     if (!cJSON_IsNumber(port_item))
     {
@@ -734,6 +740,8 @@ static esp_err_t post_settings_wifi(httpd_req_t *req)
         err = ESP_ERR_INVALID_ARG;
         goto exit;
     }
+    int port = (int)cJSON_GetNumberValue(port_item);
+
     cJSON *prefx_item = cJSON_GetObjectItem(mqtt, "prefx");
     if (!cJSON_IsString(prefx_item))
     {
@@ -819,6 +827,7 @@ static esp_err_t post_settings_wifi(httpd_req_t *req)
     // zigbee
     //  sys_settings.zigbee.zigbee_present = cJSON_IsTrue(zigbee_present_item);
     sys_settings.zigbee.zigbee_enabled = cJSON_IsTrue(zigbee_enabled_item);
+
     memset(sys_settings.zigbee.modelname, 0, sizeof(sys_settings.zigbee.modelname));
     strncpy((char *)sys_settings.zigbee.modelname, modelname, sizeof(sys_settings.zigbee.modelname) - 1);
     memset(sys_settings.zigbee.manufactuer, 0, sizeof(sys_settings.zigbee.manufactuer));
@@ -831,10 +840,11 @@ static esp_err_t post_settings_wifi(httpd_req_t *req)
 
     // mqtt
     sys_settings.mqtt.mqtt_enabled = cJSON_IsTrue(mqtt_enabled_item);
-    sys_settings.mqtt.mqtt_conected = cJSON_IsTrue(mqtt_conected_item);
+    //  sys_settings.mqtt.mqtt_conected = cJSON_IsTrue(mqtt_conected_item);
+
     memset(sys_settings.mqtt.server, 0, sizeof(sys_settings.mqtt.server));
     strncpy((char *)sys_settings.mqtt.server, mqtt_server, sizeof(sys_settings.mqtt.server) - 1);
-    sys_settings.mqtt.port = port_item;
+    sys_settings.mqtt.port = port;
     memset(sys_settings.mqtt.prefx, 0, sizeof(sys_settings.mqtt.prefx));
     strncpy((char *)sys_settings.mqtt.prefx, mqtt_prefx, sizeof(sys_settings.mqtt.prefx) - 1);
     memset(sys_settings.mqtt.user, 0, sizeof(sys_settings.mqtt.user));
@@ -844,6 +854,7 @@ static esp_err_t post_settings_wifi(httpd_req_t *req)
     memset(sys_settings.mqtt.path, 0, sizeof(sys_settings.mqtt.path));
     strncpy((char *)sys_settings.mqtt.path, mqtt_path, sizeof(sys_settings.mqtt.path) - 1);
 
+    ESP_LOGI(TAG, "Settings saved, reboot to apply ");
     err = sys_settings_save_nvs();
     // err = sys_settings_save_spiffs();
     msg = err != ESP_OK

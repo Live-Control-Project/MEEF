@@ -57,9 +57,9 @@ static system_settings_t sys_defaults = {
         .manufactuer_id = "0x1001",
     },
     .mqtt = {
-        .mqtt_enabled = true,
+        .mqtt_enabled = false,
         .mqtt_conected = false,
-        .server = "",
+        .server = "mqtt://192.168.0.206:1883",
         .port = 1883,
         .prefx = "",
         .user = "",
