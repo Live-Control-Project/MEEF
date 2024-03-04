@@ -214,6 +214,8 @@ void load_element_json(const char base_path)
                 esp_vfs_spiffs_unregister(NULL);
                 return;
             }
+            // Загружаем настройки из spiffs
+            sys_settings_load_spiffs(settings_json);
         }
         // Далее можно работать с объектом JSON, например:
         /*
@@ -253,6 +255,7 @@ void app_main()
     ESP_ERROR_CHECK(sys_settings_load_nvs());
     // Load volatile settings
     ESP_ERROR_CHECK(vol_settings_load());
+
     // Load effect parameters
     // ESP_ERROR_CHECK(effects_init());
     // Init surface
