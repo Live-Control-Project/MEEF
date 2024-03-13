@@ -854,6 +854,25 @@ static esp_err_t post_settings_wifi(httpd_req_t *req)
     memset(sys_settings.mqtt.path, 0, sizeof(sys_settings.mqtt.path));
     strncpy((char *)sys_settings.mqtt.path, mqtt_path, sizeof(sys_settings.mqtt.path) - 1);
 
+    //  Сохраняем настройки в spiffs
+    FILE *file = fopen("/spiffs_storage/settings.json", "w");
+    if (file == NULL)
+    {
+        ESP_LOGE(TAG, "Error opening file");
+    }
+
+    // Convert cJSON structure to a JSON string
+    char *json_string = cJSON_Print(json);
+    // Write JSON string to file
+    if (file != NULL)
+    {
+        fputs(json_string, file);
+        fclose(file);
+    }
+    // Free cJSON structure and JSON string
+    free(json_string);
+    //--------  Сохраняем настройки в spiffs -----------
+
     ESP_LOGI(TAG, "Settings saved, reboot to apply ");
     err = sys_settings_save_nvs();
     // err = sys_settings_save_spiffs();

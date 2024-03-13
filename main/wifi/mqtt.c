@@ -28,6 +28,8 @@ char mqtt_url[32];
 char mqtt_login[32];
 char mqtt_pwd[32];
 
+const char *deviceName = sys_settings.wifi.STA_MAC;
+
 static void log_error_if_nonzero(const char *message, int error_code)
 {
     if (error_code != 0)
@@ -175,21 +177,21 @@ void mqtt_event_handler(void *handler_args, esp_event_base_t base, int32_t event
     client = event->client;
     int msg_id;
 
-    const char *topic = sys_settings.mqtt.prefx;
-    const char *topicIN = "/td/custom/";
-    const char *deviceName = sys_settings.wifi.STA_MAC;
-    char completeTopic[strlen(topic) + strlen(topicIN) + strlen(deviceName) + 1];
-    strcpy(completeTopic, topic);      // Copy the first string
-    strcat(completeTopic, topicIN);    // Concatenate the second string
-    strcat(completeTopic, deviceName); // Concatenate the third string
+    const char *mqttPrefxIN = sys_settings.mqtt.prefx;
+    const char *topicIN = "/td/custom/#";
+    char completeTopicIN[strlen(mqttPrefxIN) + strlen(deviceName) + strlen(topicIN) + 2];
+    strcpy(completeTopicIN, mqttPrefxIN);
+    strcat(completeTopicIN, "/");
+    strcat(completeTopicIN, deviceName);
+    strcat(completeTopicIN, topicIN);
 
     switch ((esp_mqtt_event_id_t)event_id)
     {
     case MQTT_EVENT_CONNECTED:
         ESP_LOGI(TAG_MQTT, "MQTT_EVENT_CONNECTED");
         MQTT_CONNEECTED = 1;
-        msg_id = esp_mqtt_client_subscribe(client, completeTopic, 0);
-        ESP_LOGI(TAG_MQTT, "subscribe successful to %s, msg_id=%d", completeTopic, msg_id);
+        msg_id = esp_mqtt_client_subscribe(client, completeTopicIN, 0);
+        ESP_LOGI(TAG_MQTT, "subscribe successful to %s, msg_id=%d", completeTopicIN, msg_id);
         sys_settings.mqtt.mqtt_conected = true;
         publis_elements();
         break;
@@ -212,9 +214,8 @@ void mqtt_event_handler(void *handler_args, esp_event_base_t base, int32_t event
         ESP_LOGI(TAG_MQTT, "MQTT_EVENT_DATA");
         printf("TOPIC=%.*s\r\n", event->topic_len, event->topic);
         printf("DATA=%.*s\r\n", event->data_len, event->data);
-
-        // send_data(event->data, 1, "swith");
-
+        // Сюда добавить обработчик команд поступающих из MQTT для переключения реле
+        printf("Обработка команд из MQTT пока не реализована");
         break;
     case MQTT_EVENT_ERROR:
         ESP_LOGI(TAG_MQTT, "MQTT_EVENT_ERROR");
@@ -249,7 +250,7 @@ esp_err_t mqtt_app_start(void)
     // Публикуем доступность устойства
     const char *mqttPrefx = sys_settings.mqtt.prefx;
     const char *topic = "/device/custom/";
-    const char *deviceName = sys_settings.wifi.STA_MAC;
+
     char completeTopiclwt[strlen(mqttPrefx) + strlen(topic) + strlen(deviceName) + 1];
     strcpy(completeTopiclwt, mqttPrefx);
     strcat(completeTopiclwt, topic);

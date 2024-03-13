@@ -103,4 +103,6 @@ esp_err_t vol_settings_load();
 
 esp_err_t vol_settings_save();
 
+void sys_settings_load_spiffs(cJSON *json_data);
+
 #endif /* MEEF_SETTINGS_H_ */

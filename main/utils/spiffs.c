@@ -89,3 +89,14 @@ void writeJSONtoFile(char fileName, char *json_data)
 	writeFile(base_path, "w", string);
 	free(json_data);
 }
+void deleteFile(const char *fileName)
+{
+	if (remove(fileName) != 0)
+	{
+		perror("Error deleting file");
+	}
+	else
+	{
+		ESP_LOGI(TAG_spiffs, "File deleted successfully: %s\n", fileName);
+	}
+}
