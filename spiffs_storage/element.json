@@ -29,7 +29,7 @@
   },
   {
     "num": 2,
-    "name": "2. 🔌 PLUG / RELE",
+    "name": "2. 🔌 PLUG / RELAY",
     "sensor": "rele",
     "id": "rele",
     "pin": 4,
