@@ -226,7 +226,7 @@ void load_element_json(const char base_path)
             cJSON *id = cJSON_GetObjectItemCaseSensitive(item, "id");
             cJSON *pin = cJSON_GetObjectItemCaseSensitive(item, "pin");
             cJSON *ep = cJSON_GetObjectItemCaseSensitive(item, "EP");
-            cJSON *cluster = cJSON_GetObjectItemCaseSensitive(item, "claster");
+            cJSON *cluster = cJSON_GetObjectItemCaseSensitive(item, "cluster");
             if (cJSON_IsString(sensor) && cJSON_IsString(id) && cJSON_IsNumber(pin) && cJSON_IsNumber(ep) && cJSON_IsString(cluster))
             {
                 char *cluster1 = cluster->valuestring;
