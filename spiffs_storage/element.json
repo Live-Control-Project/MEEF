@@ -13,7 +13,7 @@
     "id": "gpioIN",
     "int": 100,
     "pin": 2,
-    "clasters": [
+    "clusters": [
       "Contact",
       "ZoneStatus",
       "Motion",
@@ -34,7 +34,7 @@
     "id": "rele",
     "pin": 4,
     "saveState": 0,
-    "clasters": [
+    "clusters": [
       "switch"
     ],
     "EP": 1
@@ -49,7 +49,7 @@
     "id": "dht",
     "int": 60,
     "pin": 15,
-    "clasters": [
+    "clusters": [
       "all",
       "temperature",
       "humidity"
@@ -67,7 +67,7 @@
     "pin_SDA": 18,
     "I2C_GND": 1,
     "I2C_ADDRESS": "0x36",
-    "clasters": [
+    "clusters": [
       "all",
       "temperature",
       "humidity"
@@ -85,7 +85,7 @@
     "pin_SDA": 18,
     "I2C_GND": 1,
     "I2C_ADDRESS": "0x77",
-    "clasters": [
+    "clusters": [
       "all",
       "temperature",
       "pressure"
@@ -102,7 +102,7 @@
     "pin_SDA": 18,
     "I2C_GND": 1,
     "I2C_ADDRESS": "0x77",
-    "clasters": [
+    "clusters": [
       "all",
       "temperature",
       "humidity",
@@ -115,12 +115,12 @@
   },
   {
     "num": 8,
-    "name": "claster_battary",
-    "sensor": "battary",
-    "id": "battary",
+    "name": "cluster_battery",
+    "sensor": "battery",
+    "id": "battery",
     "int": 60,
-    "clasters": [
-      "battary"
+    "clusters": [
+      "battery"
     ],
     "EP": 1
   },
@@ -134,7 +134,7 @@
     "sleep_length": 180,
     "before_long_sleep": 40,
     "long_sleep_length": 3600,
-    "clasters": [
+    "clusters": [
       "deepsleep"
     ],
     "EP": 1

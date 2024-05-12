@@ -10,7 +10,7 @@
 #include "i2cdev.h"
 #include "sensors/aht/sensor_aht.h"
 #include "sensors/bmp280/sensor_bmp280.h"
-#include "virtual/battary/battary.h"
+#include "virtual/battery/battery.h"
 #include "virtual/deepsleep/deepsleep.h"
 // #include "exec/led_light/led_light.h"
 
@@ -29,7 +29,7 @@ void sensor_init(void)
         cJSON *id_ = cJSON_GetObjectItemCaseSensitive(item, "id");
         cJSON *int_ = cJSON_GetObjectItemCaseSensitive(item, "int");
         cJSON *ep_ = cJSON_GetObjectItemCaseSensitive(item, "EP");
-        cJSON *cluster_ = cJSON_GetObjectItemCaseSensitive(item, "claster");
+        cJSON *cluster_ = cJSON_GetObjectItemCaseSensitive(item, "cluster");
         cJSON *pin_SCL_ = cJSON_GetObjectItemCaseSensitive(item, "pin_SCL");
         cJSON *pin_SDA_ = cJSON_GetObjectItemCaseSensitive(item, "pin_SDA");
         cJSON *I2C_GND_ = cJSON_GetObjectItemCaseSensitive(item, "I2C_GND");
@@ -84,9 +84,9 @@ void sensor_init(void)
             {
                 sensor_bmp280(sensor, cluster, EP, &taskParams);
             }
-            else if (strcmp(sensor, "battary") == 0)
+            else if (strcmp(sensor, "battery") == 0)
             {
-                claster_battary(sensor, cluster, EP, &taskParams);
+                cluster_battery(sensor, cluster, EP, &taskParams);
             }
             else if (strcmp(sensor, "deepsleep") == 0)
             {

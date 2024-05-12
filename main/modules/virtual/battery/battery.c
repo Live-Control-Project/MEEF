@@ -5,7 +5,7 @@
 #include "string.h"
 #include "../../../utils/send_data.h"
 #include "../../sensor_init.h"
-#include "battary.h"
+#include "battery.h"
 #include "esp_adc/adc_oneshot.h"
 #include "esp_adc/adc_cali.h"
 #include "esp_adc/adc_cali_scheme.h"
@@ -15,9 +15,9 @@
 #define ADC_RAW_OFFSET 2145
 #define ADC_EQUATION_COEF 0.0111
 #define ADC_EQUATION_OFFSET -0.0925
-static const char *TAG = "claster_battary";
+static const char *TAG = "cluster_battery";
 
-static void claster_battary_task(void *pvParameters)
+static void cluster_battery_task(void *pvParameters)
 {
     TaskParameters *params = (TaskParameters *)pvParameters;
     char *param_id = params->param_id;
@@ -110,8 +110,8 @@ static void claster_battary_task(void *pvParameters)
 }
 
 //----------------------------------//
-void claster_battary(const char *sensor, const char *cluster, int EP, const TaskParameters *taskParams)
+void cluster_battery(const char *sensor, const char *cluster, int EP, const TaskParameters *taskParams)
 {
     ESP_LOGW(TAG, "Task: %s created. Cluster: %s EP: %d", sensor, cluster, EP);
-    xTaskCreate(claster_battary_task, taskParams->param_id, 4096, taskParams, 5, NULL);
+    xTaskCreate(cluster_battery_task, taskParams->param_id, 4096, taskParams, 5, NULL);
 }

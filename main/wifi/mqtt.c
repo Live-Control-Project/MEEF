@@ -59,8 +59,8 @@ void publis_elements(void)
         cJSON *id_ = cJSON_GetObjectItemCaseSensitive(item, "id");
         cJSON *pin_ = cJSON_GetObjectItemCaseSensitive(item, "pin");
         cJSON *ep_ = cJSON_GetObjectItemCaseSensitive(item, "EP");
-        cJSON *cluster_ = cJSON_GetObjectItemCaseSensitive(item, "claster");
-        cJSON *clusters_ = cJSON_GetObjectItemCaseSensitive(item, "clasters");
+        cJSON *cluster_ = cJSON_GetObjectItemCaseSensitive(item, "cluster");
+        cJSON *clusters_ = cJSON_GetObjectItemCaseSensitive(item, "clusters");
         if (cJSON_IsString(sensor_) && cJSON_IsString(id_) && cJSON_IsNumber(ep_) && cJSON_IsString(cluster_))
         {
             char *cluster = cluster_->valuestring;

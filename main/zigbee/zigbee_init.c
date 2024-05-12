@@ -149,7 +149,7 @@ static esp_err_t zb_attribute_handler(const esp_zb_zcl_set_attr_value_message_t 
             while (item != NULL)
             {
                 cJSON *ep_ = cJSON_GetObjectItemCaseSensitive(item, "EP");
-                cJSON *cluster_ = cJSON_GetObjectItemCaseSensitive(item, "claster");
+                cJSON *cluster_ = cJSON_GetObjectItemCaseSensitive(item, "cluster");
                 cJSON *sensor_ = cJSON_GetObjectItemCaseSensitive(item, "sensor");
                 cJSON *saveState_ = cJSON_GetObjectItemCaseSensitive(item, "saveState");
                 cJSON *id_ = cJSON_GetObjectItemCaseSensitive(item, "id");
@@ -606,7 +606,7 @@ void createAttributes(esp_zb_cluster_list_t *esp_zb_cluster_list, char *cluster,
         esp_zb_attribute_list_t *esp_zb_ias_zone_cluster = esp_zb_ias_zone_cluster_create(&contact_switch_cfg);
         esp_zb_cluster_list_add_ias_zone_cluster(esp_zb_cluster_list, esp_zb_ias_zone_cluster, ESP_ZB_ZCL_CLUSTER_SERVER_ROLE);
     }
-    else if (strcmp(cluster, "battary") == 0)
+    else if (strcmp(cluster, "battery") == 0)
     {
         //***********************BATTEY CLUSTER***************************
         esp_zb_power_config_cluster_cfg_t power_cfg = {0};
@@ -782,7 +782,7 @@ static void esp_zb_task(void *pvParameters)
     while (item != NULL)
     {
         cJSON *ep_ = cJSON_GetObjectItemCaseSensitive(item, "EP");
-        cJSON *cluster_ = cJSON_GetObjectItemCaseSensitive(item, "claster");
+        cJSON *cluster_ = cJSON_GetObjectItemCaseSensitive(item, "cluster");
         cJSON *sensor_ = cJSON_GetObjectItemCaseSensitive(item, "sensor");
         if (cJSON_IsString(sensor_) && cJSON_IsNumber(ep_) && cJSON_IsString(cluster_))
         {
