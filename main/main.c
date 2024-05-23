@@ -177,7 +177,7 @@ void load_element_json(const char base_path)
         FILE *file = fopen("/spiffs_storage/settings.json", "r");
         if (file == NULL)
         {
-            ESP_LOGE(TAG, "File settings.json does not exist!");
+            ESP_LOGW(TAG, "File settings.json does not exist!");
             ESP_LOGI(TAG, "Load from NVS");
         }
         else

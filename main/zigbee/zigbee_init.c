@@ -124,9 +124,14 @@ static void reportAttribute(uint8_t endpoint, uint16_t clusterID, uint16_t attri
     memcpy(value_r->data_p, value, value_length);
     esp_zb_zcl_report_attr_cmd_req(&cmd);
 }
-
+static void zb_factory_reset(void *pvParameters)
+{
+    vTaskDelay(1000 / portTICK_PERIOD_MS);
+    esp_zb_factory_reset();
+}
 static esp_err_t zb_attribute_handler(const esp_zb_zcl_set_attr_value_message_t *message)
 {
+
     esp_err_t ret = ESP_OK;
     bool rele_state = 0;
     ESP_RETURN_ON_FALSE(message, ESP_FAIL, TAG_zigbee, "Empty message");
@@ -145,6 +150,16 @@ static esp_err_t zb_attribute_handler(const esp_zb_zcl_set_attr_value_message_t 
 
         if (message->attribute.id == ESP_ZB_ZCL_ATTR_ON_OFF_ON_OFF_ID && message->attribute.data.type == ESP_ZB_ZCL_ATTR_TYPE_BOOL)
         {
+            if (message->info.dst_endpoint == 99)
+            {
+                ESP_LOGI(TAG_zigbee, "Start Wi-Fi");
+                sys_settings.wifi.wifi_enabled = true;
+                sys_settings.zigbee.zigbee_enabled = false;
+                CHECK(sys_settings_save_nvs());
+                xTaskCreate(zb_factory_reset, "zb_factory_reset", 4096, NULL, 5, NULL);
+                // esp_zb_factory_reset();
+                break;
+            }
             cJSON *item = sensor_json->child;
             while (item != NULL)
             {
@@ -165,6 +180,7 @@ static esp_err_t zb_attribute_handler(const esp_zb_zcl_set_attr_value_message_t 
                     {
                         int pin = cJSON_GetObjectItemCaseSensitive(item, "pin")->valueint;
                         rele_state = message->attribute.data.value ? *(bool *)message->attribute.data.value : rele_state;
+
                         gpio_set_level(pin, rele_state);
                         ESP_LOGI(TAG_zigbee, "PIN %d sets to %s", pin, rele_state ? "On" : "Off");
                         if (saveState == 1)
@@ -731,7 +747,7 @@ static void esp_zb_task(void *pvParameters)
     esp_zb_basic_cluster_add_attr(esp_zb_basic_cluster, ESP_ZB_ZCL_ATTR_BASIC_MANUFACTURER_NAME_ID, manufacturer);
     esp_zb_basic_cluster_add_attr(esp_zb_basic_cluster, ESP_ZB_ZCL_ATTR_BASIC_MODEL_IDENTIFIER_ID, model);
     esp_zb_basic_cluster_add_attr(esp_zb_basic_cluster, ESP_ZB_ZCL_ATTR_BASIC_SW_BUILD_ID, firmware_version);
-    // Если устройство питается от сети, то указываем это явно
+    // Если устройство питается не от сети, то указываем это явно
     if (sys_settings.zigbee.zigbee_dc_power)
     {
         esp_zb_basic_cluster_add_attr(esp_zb_basic_cluster, ESP_ZB_ZCL_ATTR_BASIC_POWER_SOURCE_ID, &dc_power_source); /**< DC source. */

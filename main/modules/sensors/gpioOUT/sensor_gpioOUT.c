@@ -36,7 +36,7 @@ void sensor_gpioOUT(cJSON *sensor_json, int zigbee_init)
         cJSON *saveState_ = cJSON_GetObjectItemCaseSensitive(item, "saveState");
         cJSON *cluster_ = cJSON_GetObjectItemCaseSensitive(item, "claster");
 
-        if (cJSON_IsString(sensor_) && cJSON_IsString(id_) && cJSON_IsNumber(pin_) && cJSON_IsNumber(saveState_) && cJSON_IsNumber(ep_) && cJSON_IsString(cluster_))
+        if (cJSON_IsString(sensor_) && cJSON_IsString(id_) && cJSON_IsNumber(pin_) && cJSON_IsNumber(saveState_) && cJSON_IsNumber(ep_) && cJSON_IsString(cluster_) && ep_->valueint != 99)
         {
             char *cluster = cluster_->valuestring;
             char *id = id_->valuestring;
@@ -46,7 +46,7 @@ void sensor_gpioOUT(cJSON *sensor_json, int zigbee_init)
             int saveState = saveState_->valueint;
             if (strcmp(cluster, "switch") == 0 && strcmp(sensor, "rele") == 0)
             {
-                if (pin == 9 || (pin >= 12 && pin <= 13) || (pin >= 16 && pin <= 17))  
+                if (pin == 9 || (pin >= 12 && pin <= 13) || (pin >= 16 && pin <= 17))
                 {
                     ESP_LOGW(TAG, "Error while selecting output pin: %d. Cluster: %s EP: %d won't work.", pin, cluster, ep);
                     ESP_LOGW(TAG, "DON'T USE: 9 BOOT, 12-13 USB, 16-17 UART");
@@ -57,7 +57,7 @@ void sensor_gpioOUT(cJSON *sensor_json, int zigbee_init)
                     {
                         ESP_LOGW(TAG, "Task: %s created. Cluster: %s EP: %d", sensor, cluster, ep);
                     }
-                    gpio_reset_pin(pin); //helps for pins (>=18 and <=23) or (>=4 and <=7)
+                    gpio_reset_pin(pin); // helps for pins (>=18 and <=23) or (>=4 and <=7)
                     gpio_set_direction(pin, GPIO_MODE_OUTPUT);
                     gpio_set_pull_mode(pin, GPIO_PULLDOWN_ONLY);
                     // Чтение INT из NVS
