@@ -19,7 +19,6 @@
 #include "api.h"
 #include <led_strip.h>
 #include <lwip/ip_addr.h>
-#include <esp_ota_ops.h>
 #include "../settings.h"
 
 // Переделать: если только ESP32 без zigbee то не подключать библиотеку

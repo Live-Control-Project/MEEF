@@ -3,7 +3,7 @@
         "devicename": "zigbee DIY"
     },
     "wifi": {
-        "mode": 0,
+        "mode": 1,
         "wifi_present": true,
         "wifi_enabled": true,
         "ip": {
@@ -30,8 +30,8 @@
         "modelname": "zigbee DIY",
         "manufactuer": "MEEF",
         "manufactuer_id": "0x1001",
-        "zigbee_router": true,
-        "zigbee_dc_power": false,
+        "zigbee_router": false,
+        "zigbee_dc_power": true,
         "zigbee_light_sleep": false
     },
     "mqtt": {
