@@ -7,7 +7,7 @@
             "id": "dht",
             "int": 60,
             "pin": 15,
-            "clasters": [
+            "clusters": [
                 "temperature",
                 "humidity"
             ],

@@ -2,16 +2,16 @@
     "menuSection": "virtual",
     "configItem": [
         {
-            "name": "claster_battary",
-            "sensor": "battary",
-            "id": "battary",
+            "name": "cluster_battery",
+            "sensor": "battery",
+            "id": "battery",
             "int": 60,
             "pin": 2,
-            "clasters": [
-                "battary"
+            "clusters": [
+                "battery"
             ],
             "EP": 1,
-            "descr": "claster Батарейного питания"
+            "descr": "cluster Батарейного питания"
         }
     ],
     "about": {
@@ -19,10 +19,10 @@
         "authorContact": "https://t.me/avaks",
         "authorGit": "https://github.com/avaksru",
         "specialThanks": "",
-        "moduleName": "claster_battary",
+        "moduleName": "cluster_battery",
         "moduleVersion": "1.0",
-        "title": "claster Батарейного питания",
-        "moduleDesc": "claster Батарейного питания",
+        "title": "cluster Батарейного питания",
+        "moduleDesc": "cluster Батарейного питания",
         "retInfo": "",
         "propInfo": {}
     },

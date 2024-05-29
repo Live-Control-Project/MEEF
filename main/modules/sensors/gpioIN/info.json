@@ -7,7 +7,7 @@
             "id": "gpioIN",
             "int": 100,
             "pin": 2,
-            "clasters": [
+            "clusters": [
                 "Contact",
                 "ZoneStatus",
                 "Motion",

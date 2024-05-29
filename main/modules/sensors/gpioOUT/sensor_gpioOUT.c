@@ -34,7 +34,7 @@ void sensor_gpioOUT(cJSON *sensor_json, int zigbee_init)
         cJSON *pin_ = cJSON_GetObjectItemCaseSensitive(item, "pin");
         cJSON *ep_ = cJSON_GetObjectItemCaseSensitive(item, "EP");
         cJSON *saveState_ = cJSON_GetObjectItemCaseSensitive(item, "saveState");
-        cJSON *cluster_ = cJSON_GetObjectItemCaseSensitive(item, "claster");
+        cJSON *cluster_ = cJSON_GetObjectItemCaseSensitive(item, "cluster");
 
         if (cJSON_IsString(sensor_) && cJSON_IsString(id_) && cJSON_IsNumber(pin_) && cJSON_IsNumber(saveState_) && cJSON_IsNumber(ep_) && cJSON_IsString(cluster_) && ep_->valueint != 99)
         {

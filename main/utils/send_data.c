@@ -234,8 +234,8 @@ void send_data(uint16_t sensor_val, int param_ep, char *cluster)
     {
         reportAttribute(param_ep, ESP_ZB_ZCL_CLUSTER_ID_ON_OFF, ESP_ZB_ZCL_ATTR_ON_OFF_ON_OFF_ID, &sensor_val, 1);
     }
-    //   battary
-    if (sys_settings.zigbee.zigbee_conected == true && strcmp(cluster, "battary") == 0)
+    //   battery
+    if (sys_settings.zigbee.zigbee_conected == true && strcmp(cluster, "battery") == 0)
     {
         reportAttribute(param_ep, ESP_ZB_ZCL_CLUSTER_ID_POWER_CONFIG, ESP_ZB_ZCL_ATTR_POWER_CONFIG_BATTERY_PERCENTAGE_REMAINING_ID, &sensor_val, 1);
     }

@@ -25,7 +25,7 @@ idf_component_register(
 		modules/sensors/bmp280/sensor_bmp280.c
 		modules/sensors/ds18b20/sensor_ds18b20.c
 
-		modules/virtual/battary/battary.c
+		modules/virtual/battery/battery.c
 		modules/virtual/deepsleep/deepsleep.c
 		
 		modules/exec/led_light/led_light.c

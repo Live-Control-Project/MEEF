@@ -7,7 +7,7 @@
             "id": "deepsleep",
             "int": 60,
             "pin": 2,
-            "clasters": [
+            "clusters": [
                 "deepsleep"
             ],
             "EP": 1,
