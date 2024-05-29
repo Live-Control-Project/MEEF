@@ -3,7 +3,9 @@
 nvs,        data, nvs,             ,  0x6000,
 otadata,    data, ota,             ,  0x2000,
 phy_init,   data, phy,             ,  0x1000,
-factory,    app,  factory,         , 2500K,
 zb_storage, data, fat,             , 16K,
 zb_fct,     data, fat,             , 1K,
+ota_0,      app,  ota_0,           , 1700K,
+ota_1,      app,  ota_1,           , 1700K,
 storage,    data, spiffs,          , 500K,
+

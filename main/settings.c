@@ -50,7 +50,7 @@ static system_settings_t sys_defaults = {
         .zigbee_enabled = false,
         .zigbee_conected = false,
         .zigbee_router = true,
-        .zigbee_dc_power = false,
+        .zigbee_dc_power = true,
         .zigbee_light_sleep = false,
         .lastBatteryPercentageRemaining = 0x8C,
         .modelname = "zigbee DIY",
@@ -297,13 +297,19 @@ esp_err_t vol_settings_save()
 // Считываем настройки из spiffs
 void sys_settings_load_spiffs(cJSON *json_data)
 {
-    cJSON *root = cJSON_Parse(json_data);
+
+    //    char *json_string = cJSON_Print(json_data);
+    //    ESP_LOGI(TAG, "JSON data: %s", json_string);
+
+    // cJSON *root = cJSON_Parse(json_data);
+    cJSON *root = json_data;
     if (!root)
     {
         const char *error_ptr = cJSON_GetErrorPtr();
         if (error_ptr != NULL)
         {
-            fprintf(stderr, "Error parsing JSON: %s\n", error_ptr);
+            ESP_LOGE(TAG, "Error parsing JSON sys_settings_load_spiffs");
+            // fprintf(stderr, "Error parsing JSON: %s\n", error_ptr);
         }
     }
 
@@ -385,6 +391,7 @@ void sys_settings_load_spiffs(cJSON *json_data)
             strncpy((char *)sys_settings.mqtt.path, cJSON_GetObjectItemCaseSensitive(mqtt, "path")->valuestring, sizeof(sys_settings.mqtt.path) - 1);
         }
     }
+    deleteFile("/spiffs_storage/settings.json");
 }
 
 /*

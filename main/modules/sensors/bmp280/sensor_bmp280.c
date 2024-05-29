@@ -66,7 +66,7 @@ static void sensor_bmp280_task(void *pvParameters)
 
     while (1)
     {
-        vTaskDelay(param_int / portTICK_PERIOD_MS);
+
         if (bmp280_read_float(&dev, &temperature, &pressure, &humidity) == ESP_OK)
         {
 
@@ -101,6 +101,7 @@ static void sensor_bmp280_task(void *pvParameters)
         {
             ESP_LOGE(TAG, "Could not read data from sensor bme280 / bmp280");
         }
+        vTaskDelay(param_int / portTICK_PERIOD_MS);
     }
 }
 

@@ -54,6 +54,8 @@ void send_data(uint16_t sensor_val, int param_ep, char *cluster)
         {
             ESP_LOGE(TAG_send_data, "Setting temperature attribute failed!");
         }
+
+        //    reportAttribute(param_ep, ESP_ZB_ZCL_CLUSTER_ID_TEMP_MEASUREMENT, ESP_ZB_ZCL_ATTR_TEMP_MEASUREMENT_VALUE_ID, &sensor_val, 1);
     }
     else if (sys_settings.zigbee.zigbee_conected == true && strcmp(cluster, "humidity") == 0)
     {
@@ -63,6 +65,8 @@ void send_data(uint16_t sensor_val, int param_ep, char *cluster)
         {
             ESP_LOGE(TAG_send_data, "Setting humidity attribute failed!");
         }
+
+        //   reportAttribute(param_ep, ESP_ZB_ZCL_CLUSTER_ID_REL_HUMIDITY_MEASUREMENT, ESP_ZB_ZCL_ATTR_REL_HUMIDITY_MEASUREMENT_VALUE_ID, &sensor_val, 1);
     }
     else if (sys_settings.zigbee.zigbee_conected == true && strcmp(cluster, "pressure") == 0)
     {
@@ -72,6 +76,8 @@ void send_data(uint16_t sensor_val, int param_ep, char *cluster)
         {
             ESP_LOGE(TAG_send_data, "Setting pressure attribute failed!");
         }
+
+        // reportAttribute(param_ep, ESP_ZB_ZCL_CLUSTER_ID_PRESSURE_MEASUREMENT, ESP_ZB_ZCL_ATTR_PRESSURE_MEASUREMENT_VALUE_ID, &sensor_val, 1);
     }
     else if (sys_settings.zigbee.zigbee_conected == true && strcmp(cluster, "BINARY") == 0)
     {
