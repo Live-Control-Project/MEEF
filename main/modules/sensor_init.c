@@ -12,6 +12,7 @@
 #include "sensors/bmp280/sensor_bmp280.h"
 #include "virtual/battary/battary.h"
 #include "virtual/deepsleep/deepsleep.h"
+#include "sensors/ds18b20/sensor_ds18b20.h"
 // #include "exec/led_light/led_light.h"
 
 extern cJSON *sensor_json;
@@ -30,6 +31,8 @@ void sensor_init(void)
         cJSON *int_ = cJSON_GetObjectItemCaseSensitive(item, "int");
         cJSON *ep_ = cJSON_GetObjectItemCaseSensitive(item, "EP");
         cJSON *cluster_ = cJSON_GetObjectItemCaseSensitive(item, "claster");
+        cJSON *index_ = cJSON_GetObjectItemCaseSensitive(item, "index");
+        cJSON *addr_ = cJSON_GetObjectItemCaseSensitive(item, "addr");
         cJSON *pin_SCL_ = cJSON_GetObjectItemCaseSensitive(item, "pin_SCL");
         cJSON *pin_SDA_ = cJSON_GetObjectItemCaseSensitive(item, "pin_SDA");
         cJSON *I2C_GND_ = cJSON_GetObjectItemCaseSensitive(item, "I2C_GND");
@@ -50,6 +53,8 @@ void sensor_init(void)
                 .param_pin = cJSON_IsNumber(pin_) ? pin_->valueint : 0,
                 .param_ep = cJSON_IsNumber(ep_) ? ep_->valueint : 1,
                 .param_int = cJSON_IsNumber(int_) ? int_->valueint : 60,
+                .param_index = cJSON_IsNumber(index_) ? index_->valueint : 0,
+                .param_addr = cJSON_IsString(addr_) ? addr_->valuestring : "",
                 .param_pin_SCL = cJSON_IsNumber(pin_SCL_) ? pin_SCL_->valueint : 0,
                 .param_pin_SDA = cJSON_IsNumber(pin_SDA_) ? pin_SDA_->valueint : 0,
                 .param_I2C_GND = cJSON_IsNumber(I2C_GND_) ? I2C_GND_->valueint : 0,
@@ -79,7 +84,6 @@ void sensor_init(void)
             {
                 sensor_aht(sensor, cluster, EP, &taskParams);
             }
-
             else if (strcmp(sensor, "BMP280") == 0)
             {
                 sensor_bmp280(sensor, cluster, EP, &taskParams);
@@ -91,6 +95,10 @@ void sensor_init(void)
             else if (strcmp(sensor, "deepsleep") == 0)
             {
                 deep_sleep(sensor, cluster, EP, &taskParams);
+            }
+            else if (strcmp(sensor, "DS18b20") == 0)
+            {
+                sensor_ds18b20(sensor, cluster, EP, &taskParams);
             }
             else if (strcmp(sensor, "led_light") == 0)
             {

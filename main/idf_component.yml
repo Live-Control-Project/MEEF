@@ -4,6 +4,8 @@ dependencies:
   espressif/esp-zboss-lib: "~1.1.0"
   espressif/esp-zigbee-lib: "~1.1.0"
   espressif/led_strip: ">=2.0.0"
+  espressif/ds18b20: "^0.1.1"
+  espressif/onewire_bus: "^1.0.1"
   ## Required IDF version
   idf:
     version: ">=5.1.0"

@@ -8,6 +8,8 @@ typedef struct
     char *param_I2C_ADDRESS;
     int param_ep;
     int param_int;
+    int param_index;
+    char *param_addr;
     int param_saveState;
     char *param_cluster;
     char *param_id;

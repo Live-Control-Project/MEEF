@@ -1,5 +1,5 @@
 {
-    "idf.portWin": "COM5",
+    "idf.portWin": "COM6",
     "idf.flashType": "UART",
     "files.associations": {
         "zboss_api.h": "c",
@@ -36,7 +36,10 @@
         "sensor_gpioout.h": "c",
         "send_data.h": "c",
         "mqtt.h": "c",
-        "effect.h": "c"
+        "effect.h": "c",
+        "ds18b20.h": "c",
+        "sensor_bmp280.h": "c",
+        "inttypes.h": "c"
     },
     "idf.adapterTargetName": "esp32c6",
     "C_Cpp.errorSquiggles": "disabled",

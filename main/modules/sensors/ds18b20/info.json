@@ -1,0 +1,37 @@
+{
+    "menuSection": "sensors",
+    "configItem": [
+        {
+            "name": "ds18x20",
+            "sensor": "ds18x20",
+            "id": "sensor",
+            "int": 60,
+            "pin": 2,
+            "clasters": [
+                "ds18x20"
+            ],
+            "EP": 1,
+            "descr": "Пример сенсора"
+        }
+    ],
+    "about": {
+        "authorName": "AVAKS",
+        "authorContact": "https://t.me/avaks",
+        "authorGit": "https://github.com/avaksru",
+        "specialThanks": "",
+        "moduleName": "GPIO IN",
+        "moduleVersion": "1.0",
+        "title": "ds18x20",
+        "moduleDesc": "ds18x20",
+        "retInfo": "",
+        "propInfo": {
+            "pin": "Укажите GPIO номер пина",
+            "int": "Интервал опроса датчика"
+        }
+    },
+    "defActive": true,
+    "usedLibs": {
+        "esp32_C6": [],
+        "esp32_H2": []
+    }
+}

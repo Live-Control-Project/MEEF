@@ -111,10 +111,25 @@
     "EP": 1
   },
   {
+    "num": 8,
+    "name": "8. 🌡DS18b20 (temperature)",
+    "sensor": "DS18b20",
+    "id": "ds18b20",
+    "int": 60,
+    "pin": 7,
+    "index": 0,
+    "addr": "",
+    "round": 1,
+    "clasters": [
+      "temperature"
+    ],
+    "EP": 1
+  },
+  {
     "header": "VIRTUAL"
   },
   {
-    "num": 8,
+    "num": 9,
     "name": "claster_battary",
     "sensor": "battary",
     "id": "battary",
@@ -125,7 +140,7 @@
     "EP": 1
   },
   {
-    "num": 9,
+    "num": 10,
     "name": "deepsleep",
     "sensor": "deepsleep",
     "id": "deepsleep",
