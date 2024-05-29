@@ -1,5 +1,5 @@
 {
-    "idf.portWin": "COM6",
+    "idf.portWin": "COM3",
     "idf.flashType": "UART",
     "files.associations": {
         "zboss_api.h": "c",

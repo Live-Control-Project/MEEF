@@ -1,4 +1,4 @@
-#include <stdio.h>
+// #include <stdio.h>
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
 #include "esp_log.h"
@@ -8,7 +8,7 @@
 #include "../../../utils/send_data.h"
 #include "../../sensor_init.h"
 #include "sensor_ds18b20.h"
-#include "driver/gpio.h"
+// #include "driver/gpio.h"
 #include "onewire_bus.h"
 #include "ds18b20.h"
 
@@ -85,6 +85,14 @@ void init_onewire(int gpio_num)
                     ESP_LOGI(TAG, "Found an unknown device, address: %016llX", next_onewire_device.address);
                 }
             }
+            else if (search_result == ESP_ERR_NOT_FOUND)
+            {
+                ESP_LOGI(TAG, "No more devices found on the bus.");
+            }
+            else
+            {
+                ESP_LOGE(TAG, "Error during device search: %s", esp_err_to_name(search_result));
+            }
         } while (search_result != ESP_ERR_NOT_FOUND);
         ESP_ERROR_CHECK(onewire_del_device_iter(iter));
         ESP_LOGI(TAG, "Searching done, %d DS18B20 device(s) found", ds18b20_device_num);
@@ -140,9 +148,10 @@ void sensor_ds18b20_task(void *pvParameters)
         for (int i = 0; i < ds18b20_device_num; i++)
         {
             float temperature;
-
+            ESP_ERROR_CHECK(ds18b20_trigger_temperature_conversion(ds18b20s[i].handle));
             if (strcmp(addr, "") != 0 && strcmp(addr, ds18b20s[i].address_str) == 0)
             {
+
                 if (ds18b20_get_temperature(ds18b20s[i].handle, &temperature) == ESP_OK && i == index)
                 {
                     send_sensor_data(temperature, param_ep, cluster);
@@ -155,6 +164,7 @@ void sensor_ds18b20_task(void *pvParameters)
             }
             else
             {
+
                 if (ds18b20_get_temperature(ds18b20s[i].handle, &temperature) == ESP_OK && i == index)
                 {
                     send_sensor_data(temperature, param_ep, cluster);
