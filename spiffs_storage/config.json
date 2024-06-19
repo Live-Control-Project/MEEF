@@ -1,13 +1,1 @@
-[
-    {
-        "sensor": "rele",
-        "id": "wifi",
-        "pin": 4,
-        "saveState": 0,
-        "clasters": [
-            "switch"
-        ],
-        "EP": 99,
-        "claster": "switch"
-    }
-]
+[]
