@@ -1931,12 +1931,6 @@ CONFIG_I2CDEV_TIMEOUT=1000
 # end of I2C
 
 #
-# OneWire
-#
-CONFIG_ONEWIRE_CRC8_TABLE=y
-# end of OneWire
-
-#
 # Zigbee
 #
 CONFIG_ZB_ENABLED=y
