@@ -47,14 +47,14 @@
         },                                                \
     }
 
-#define ESP_ZB_DEFAULT_RADIO_CONFIG()    \
-    {                                    \
-        .radio_mode = RADIO_MODE_NATIVE, \
+#define ESP_ZB_DEFAULT_RADIO_CONFIG()       \
+    {                                       \
+        .radio_mode = ZB_RADIO_MODE_NATIVE, \
     }
 
-#define ESP_ZB_DEFAULT_HOST_CONFIG()                       \
-    {                                                      \
-        .host_connection_mode = HOST_CONNECTION_MODE_NONE, \
+#define ESP_ZB_DEFAULT_HOST_CONFIG()                          \
+    {                                                         \
+        .host_connection_mode = ZB_HOST_CONNECTION_MODE_NONE, \
     }
 
 void zigbee_init(void);

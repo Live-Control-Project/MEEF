@@ -120,7 +120,7 @@
     "index": 0,
     "addr": "",
     "round": 1,
-    "clasters": [
+    "clusters": [
       "temperature"
     ],
     "EP": 1
@@ -130,7 +130,7 @@
   },
   {
     "num": 9,
-    "name": "claster_battary",
+    "name": "cluster_battary",
     "sensor": "battary",
     "id": "battary",
 

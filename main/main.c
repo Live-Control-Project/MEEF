@@ -96,7 +96,7 @@ static void main_loop(void *arg)
             if (err != ESP_OK)
                 ESP_LOGW(TAG, "Error starting HTTPD: %d (%s)", err, esp_err_to_name(err));
 
-            if (!sys_settings.zigbee.zigbee_present || !sys_settings.zigbee.zigbee_enabled)
+            if (!sys_settings.zigbee.zigbee_enabled)
             {
                 // Инициализация датчиков \ сенсоров
                 sensor_init();

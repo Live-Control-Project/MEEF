@@ -7,7 +7,7 @@
             "id": "sensor",
             "int": 60,
             "pin": 2,
-            "clasters": [
+            "clusters": [
                 "ds18x20"
             ],
             "EP": 1,
