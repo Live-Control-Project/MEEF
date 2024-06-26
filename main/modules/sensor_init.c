@@ -30,7 +30,7 @@ void sensor_init(void)
         cJSON *id_ = cJSON_GetObjectItemCaseSensitive(item, "id");
         cJSON *int_ = cJSON_GetObjectItemCaseSensitive(item, "int");
         cJSON *ep_ = cJSON_GetObjectItemCaseSensitive(item, "EP");
-        cJSON *cluster_ = cJSON_GetObjectItemCaseSensitive(item, "claster");
+        cJSON *cluster_ = cJSON_GetObjectItemCaseSensitive(item, "cluster");
         cJSON *index_ = cJSON_GetObjectItemCaseSensitive(item, "index");
         cJSON *addr_ = cJSON_GetObjectItemCaseSensitive(item, "addr");
         cJSON *pin_SCL_ = cJSON_GetObjectItemCaseSensitive(item, "pin_SCL");
@@ -94,7 +94,7 @@ void sensor_init(void)
             }
             else if (strcmp(sensor, "deepsleep") == 0)
             {
-                deep_sleep(sensor, cluster, EP, &taskParams);
+                deep_sleep(sensor, cluster, EP, &taskParams);               
             }
             else if (strcmp(sensor, "DS18b20") == 0)
             {
