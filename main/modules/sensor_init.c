@@ -14,6 +14,7 @@
 #include "virtual/deepsleep/deepsleep.h"
 #include "sensors/ds18b20/sensor_ds18b20.h"
 // #include "exec/led_light/led_light.h"
+#include "sensors/siht/sensor_siht.h"
 
 extern cJSON *sensor_json;
 static const char *TAG = "sensor_init";
@@ -88,13 +89,17 @@ void sensor_init(void)
             {
                 sensor_bmp280(sensor, cluster, EP, &taskParams);
             }
+            else if (strcmp(sensor, "SiHT") == 0)
+            {
+                sensor_siht(sensor, cluster, EP, &taskParams);
+            }
             else if (strcmp(sensor, "battery") == 0)
             {
                 cluster_battery(sensor, cluster, EP, &taskParams);
             }
             else if (strcmp(sensor, "deepsleep") == 0)
             {
-                deep_sleep(sensor, cluster, EP, &taskParams);               
+                deep_sleep(sensor, cluster, EP, &taskParams);
             }
             else if (strcmp(sensor, "DS18b20") == 0)
             {

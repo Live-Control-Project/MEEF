@@ -55,10 +55,20 @@ static void sensor_bmp280_task(void *pvParameters)
     bmp280_t dev;
     memset(&dev, 0, sizeof(bmp280_t));
 
-    ESP_ERROR_CHECK(bmp280_init_desc(&dev, I2C_ADDRESS_int, 0, param_pin_SDA, param_pin_SCL));
+    esp_err_t init_desc_err = bmp280_init_desc(&dev, I2C_ADDRESS_int, 0, param_pin_SDA, param_pin_SCL);
+    if (init_desc_err != ESP_OK) {
+        ESP_LOGE(TAG, "Failed to initialize device descriptor: %s", esp_err_to_name(init_desc_err));
+        vTaskDelete(NULL); 
+    }
+
     // BMP280_I2C_ADDRESS_0
     // ESP_ERROR_CHECK(bmp280_init_desc(&dev, BMP280_I2C_ADDRESS_1, 0, param_pin_SDA, param_pin_SCL));
-    ESP_ERROR_CHECK(bmp280_init(&dev, &params_bmp280));
+
+    esp_err_t init_err = bmp280_init(&dev, &params_bmp280);
+    if (init_err != ESP_OK) {
+        ESP_LOGE(TAG, "Failed to initialize BMP280: %s", esp_err_to_name(init_err));
+        vTaskDelete(NULL); 
+    }
 
     bool bme280p = dev.id == BME280_CHIP_ID;
 

@@ -800,6 +800,8 @@ static void esp_zb_task(void *pvParameters)
         cJSON *ep_ = cJSON_GetObjectItemCaseSensitive(item, "EP");
         cJSON *cluster_ = cJSON_GetObjectItemCaseSensitive(item, "cluster");
         cJSON *sensor_ = cJSON_GetObjectItemCaseSensitive(item, "sensor");
+        cJSON *clusters_ = cJSON_GetObjectItemCaseSensitive(item, "clusters");
+
         if (cJSON_IsString(sensor_) && cJSON_IsNumber(ep_) && cJSON_IsString(cluster_))
         {
             char *cluster = cluster_->valuestring;
@@ -807,7 +809,8 @@ static void esp_zb_task(void *pvParameters)
             char *sensor = sensor_->valuestring;
 
             esp_zb_cluster_list_t *esp_zb_cluster_list = get_existing_or_create_new_list(EP);
-            if (strcmp(sensor, "DHT") == 0 && strcmp(cluster, "all") == 0)
+
+            /*if (strcmp(sensor, "DHT") == 0 && strcmp(cluster, "all") == 0)
             {
                 createAttributes(esp_zb_cluster_list, "temperature", EP);
                 createAttributes(esp_zb_cluster_list, "humidity", EP);
@@ -828,10 +831,32 @@ static void esp_zb_task(void *pvParameters)
                 createAttributes(esp_zb_cluster_list, "humidity", EP);
                 createAttributes(esp_zb_cluster_list, "pressure", EP);
             }
+            else if (strcmp(sensor, "SiHT") == 0 && strcmp(cluster, "all") == 0)
+            {
+                createAttributes(esp_zb_cluster_list, "temperature", EP);
+                createAttributes(esp_zb_cluster_list, "humidity", EP);
+            }
+            else */
+
+            // if cluster set to all - create all clusters using json option clusters
+            if (strcmp(cluster, "all") == 0) {
+                cJSON *cluster_item;
+                cJSON_ArrayForEach(cluster_item, clusters_)
+                {
+                    if (cJSON_IsString(cluster_item) && strcmp(cluster_item->valuestring, "all") != 0)
+                    {
+                        createAttributes(esp_zb_cluster_list, cluster_item->valuestring, EP);
+                    }
+                }
+            }
+
+            // light cluster
             else if (strcmp(sensor, "led_light") == 0 && strcmp(cluster, "all") == 0)
             {
                 light_data_t *light = get_existing_or_create_new_light(EP);
             }
+
+            // default case - create only one cluster
             else
             {
                 createAttributes(esp_zb_cluster_list, cluster, EP);

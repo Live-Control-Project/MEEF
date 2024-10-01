@@ -112,7 +112,7 @@
   },
   {
     "num": 8,
-    "name": "8. 🌡DS18b20 (temperature)",
+    "name": "8. 🌡 DS18b20 (temperature)",
     "sensor": "DS18b20",
     "id": "ds18b20",
     "int": 60,
@@ -126,10 +126,25 @@
     "EP": 1
   },
   {
+    "num": 9,
+    "name": "9. 🌡💧 Si70xx/HTU2xD/SHT2x (temperature humidity)",
+    "sensor": "SiHT",
+    "id": "siht",
+    "int": 60,
+    "pin_SDA": 6,
+    "pin_SCL": 7,
+    "clusters": [
+      "all",
+      "temperature",
+      "humidity"
+    ],
+    "EP": 1
+  },
+  {
     "header": "VIRTUAL"
   },
   {
-    "num": 9,
+    "num": 10,
     "name": "cluster_battary",
     "sensor": "battary",
     "id": "battary",
@@ -141,7 +156,7 @@
     "EP": 1
   },
   {
-    "num": 10,
+    "num": 11,
     "name": "deepsleep",
     "sensor": "deepsleep",
     "id": "deepsleep",

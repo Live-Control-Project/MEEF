@@ -75,8 +75,19 @@ static void sensor_aht_task(void *pvParameters)
     dev.mode = AHT_MODE_NORMAL;
     dev.type = AHT_TYPE;
 
-    ESP_ERROR_CHECK(aht_init_desc(&dev, ADDR, 0, param_pin_SDA, param_pin_SCL));
-    ESP_ERROR_CHECK(aht_init(&dev));
+    esp_err_t init_desc_err = aht_init_desc(&dev, ADDR, 0, param_pin_SDA, param_pin_SCL);
+    if (init_desc_err != ESP_OK)
+    {
+        ESP_LOGE(TAG, "Failed to initialize device descriptor: %s", esp_err_to_name(init_desc_err));
+        vTaskDelete(NULL);
+    }
+    
+    esp_err_t init_err = aht_init(&dev);
+    if (init_err != ESP_OK)
+    {
+        ESP_LOGE(TAG, "Failed to initialize AHT: %s", esp_err_to_name(init_err));
+        vTaskDelete(NULL);
+    }
 
     bool calibrated;
     ESP_ERROR_CHECK(aht_get_status(&dev, NULL, &calibrated));
