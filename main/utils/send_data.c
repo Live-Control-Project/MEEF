@@ -80,6 +80,18 @@ void send_data(uint16_t sensor_val, int param_ep, char *cluster)
 
             // reportAttribute(param_ep, ESP_ZB_ZCL_CLUSTER_ID_PRESSURE_MEASUREMENT, ESP_ZB_ZCL_ATTR_PRESSURE_MEASUREMENT_VALUE_ID, &sensor_val, 1);
         }
+        else if (strcmp(cluster, "co2") == 0)
+        {
+            float carbon = (float)(sensor_val) / 1000000.0f;
+
+            esp_zb_zcl_status_t state_co2 = esp_zb_zcl_set_attribute_val(param_ep, ESP_ZB_ZCL_CLUSTER_ID_CARBON_DIOXIDE_MEASUREMENT, ESP_ZB_ZCL_CLUSTER_SERVER_ROLE, ESP_ZB_ZCL_ATTR_CARBON_DIOXIDE_MEASUREMENT_MEASURED_VALUE_ID, &carbon, false);
+            if (state_co2 != ESP_ZB_ZCL_STATUS_SUCCESS)
+            {
+                ESP_LOGE(TAG_send_data, "Setting co2 attribute failed!");
+            }
+
+            // reportAttribute(param_ep, ESP_ZB_ZCL_CLUSTER_ID_CARBON_DIOXIDE_MEASUREMENT, ESP_ZB_ZCL_ATTR_CARBON_DIOXIDE_MEASUREMENT_MEASURED_VALUE_ID, &sensor_val, 1);
+        }
         else if (strcmp(cluster, "BINARY") == 0)
         {
 

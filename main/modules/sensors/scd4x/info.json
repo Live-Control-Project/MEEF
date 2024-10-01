@@ -2,19 +2,20 @@
     "menuSection": "sensors",
     "configItem": [
         {
-            "name": "Si70xx/HTU2xD/SHT2x (temperature humidity)",
-            "sensor": "SiHT",
-            "id": "siht",
+            "name": "SCD4x CO2 + temperature, humidity",
+            "sensor": "SCD4x",
+            "id": "scd4x",
             "int": 60,
             "pin_SCL": 7,
             "pin_SDA": 6,
             "clusters": [
                 "all",
+                "co2",
                 "temperature",
                 "humidity"
             ],
             "EP": 1,
-            "descr": "Датчик температуры / влажности"
+            "descr": "Датчик CO2 + температура + влажность"
         }
     ],
     "about": {
@@ -22,10 +23,10 @@
         "authorContact": "https://t.me/xyzroe",
         "authorGit": "https://github.com/xyzroe",
         "specialThanks": "",
-        "moduleName": "siht",
+        "moduleName": "scd4x",
         "moduleVersion": "1.0",
-        "title": "Сенсор температуры и влажности Si7021",
-        "moduleDesc": "Позволяет получить значения температуры и влажности с Si7013/Si7020/Si7021/HTU2xD/SHT2x.",
+        "title": "Датчик SCD4x CO2",
+        "moduleDesc": "Позволяет получить значения углекислого, температуры и влажности с датчиков Sensirion SCD4x.",
         "retInfo": "",
         "propInfo": {
             "int": "Количество секунд между опросами датчика.",

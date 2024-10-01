@@ -131,12 +131,28 @@
     "sensor": "SiHT",
     "id": "siht",
     "int": 60,
-    "pin_SDA": 6,
     "pin_SCL": 7,
+    "pin_SDA": 6,
     "clusters": [
       "all",
       "temperature",
       "humidity"
+    ],
+    "EP": 1
+  },
+  {
+    "num": 10,
+    "name": "10. 🌪🌡💧 SCD4x CO2, temperature, humidity",
+    "sensor": "SCD4x",
+    "id": "scd4x",
+    "int": 60,
+    "pin_SCL": 7,
+    "pin_SDA": 6,
+    "clusters": [
+        "all",
+        "co2",
+        "temperature",
+        "humidity"
     ],
     "EP": 1
   },
