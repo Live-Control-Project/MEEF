@@ -408,14 +408,27 @@ void createAttributes(esp_zb_cluster_list_t *esp_zb_cluster_list, char *cluster,
 {
     ESP_LOGW(TAG_zigbee, "Cluster: %s created. EP: %d", cluster, EP);
     uint16_t undefined_value;
+
     undefined_value = 0x8000;
 
-    if (strcmp(cluster, "illuminance") == 0)
+    float undefined_float = 0;
+    float float_one = 1;
+
+    if (strcmp(cluster, "co2") == 0)
+    {
+        esp_zb_attribute_list_t *esp_zb_carbon_dioxide_measurement_cluster = esp_zb_zcl_attr_list_create(ESP_ZB_ZCL_CLUSTER_ID_CARBON_DIOXIDE_MEASUREMENT);
+        esp_zb_carbon_dioxide_measurement_cluster_add_attr(esp_zb_carbon_dioxide_measurement_cluster, ESP_ZB_ZCL_ATTR_CARBON_DIOXIDE_MEASUREMENT_MEASURED_VALUE_ID, &undefined_float);
+        esp_zb_carbon_dioxide_measurement_cluster_add_attr(esp_zb_carbon_dioxide_measurement_cluster, ESP_ZB_ZCL_ATTR_CARBON_DIOXIDE_MEASUREMENT_MIN_MEASURED_VALUE_ID, &undefined_float); 
+        esp_zb_carbon_dioxide_measurement_cluster_add_attr(esp_zb_carbon_dioxide_measurement_cluster, ESP_ZB_ZCL_ATTR_CARBON_DIOXIDE_MEASUREMENT_MAX_MEASURED_VALUE_ID, &float_one); // https://github.com/espressif/esp-zigbee-sdk/issues/147#issuecomment-1820778678
+        esp_zb_cluster_list_add_carbon_dioxide_measurement_cluster(esp_zb_cluster_list, esp_zb_carbon_dioxide_measurement_cluster, ESP_ZB_ZCL_CLUSTER_SERVER_ROLE);
+    }
+
+    else if (strcmp(cluster, "illuminance") == 0)
     {
         esp_zb_attribute_list_t *esp_zb_illuminance_meas_cluster = esp_zb_zcl_attr_list_create(ESP_ZB_ZCL_CLUSTER_ID_ILLUMINANCE_MEASUREMENT);
-        esp_zb_illuminance_meas_cluster_add_attr(esp_zb_illuminance_meas_cluster, ESP_ZB_ZCL_ATTR_TEMP_MEASUREMENT_VALUE_ID, &undefined_value);
-        esp_zb_illuminance_meas_cluster_add_attr(esp_zb_illuminance_meas_cluster, ESP_ZB_ZCL_ATTR_TEMP_MEASUREMENT_MIN_VALUE_ID, &undefined_value);
-        esp_zb_illuminance_meas_cluster_add_attr(esp_zb_illuminance_meas_cluster, ESP_ZB_ZCL_ATTR_TEMP_MEASUREMENT_MAX_VALUE_ID, &undefined_value);
+        esp_zb_illuminance_meas_cluster_add_attr(esp_zb_illuminance_meas_cluster, ESP_ZB_ZCL_ATTR_ILLUMINANCE_MEASUREMENT_MEASURED_VALUE_ID, &undefined_value);
+        esp_zb_illuminance_meas_cluster_add_attr(esp_zb_illuminance_meas_cluster, ESP_ZB_ZCL_ATTR_ILLUMINANCE_MEASUREMENT_MIN_MEASURED_VALUE_ID, &undefined_value);
+        esp_zb_illuminance_meas_cluster_add_attr(esp_zb_illuminance_meas_cluster, ESP_ZB_ZCL_ATTR_ILLUMINANCE_MEASUREMENT_MAX_MEASURED_VALUE_ID, &undefined_value);
         esp_zb_cluster_list_add_illuminance_meas_cluster(esp_zb_cluster_list, esp_zb_illuminance_meas_cluster, ESP_ZB_ZCL_CLUSTER_SERVER_ROLE);
     }
 
@@ -800,6 +813,8 @@ static void esp_zb_task(void *pvParameters)
         cJSON *ep_ = cJSON_GetObjectItemCaseSensitive(item, "EP");
         cJSON *cluster_ = cJSON_GetObjectItemCaseSensitive(item, "cluster");
         cJSON *sensor_ = cJSON_GetObjectItemCaseSensitive(item, "sensor");
+        cJSON *clusters_ = cJSON_GetObjectItemCaseSensitive(item, "clusters");
+
         if (cJSON_IsString(sensor_) && cJSON_IsNumber(ep_) && cJSON_IsString(cluster_))
         {
             char *cluster = cluster_->valuestring;
@@ -807,7 +822,8 @@ static void esp_zb_task(void *pvParameters)
             char *sensor = sensor_->valuestring;
 
             esp_zb_cluster_list_t *esp_zb_cluster_list = get_existing_or_create_new_list(EP);
-            if (strcmp(sensor, "DHT") == 0 && strcmp(cluster, "all") == 0)
+
+            /*if (strcmp(sensor, "DHT") == 0 && strcmp(cluster, "all") == 0)
             {
                 createAttributes(esp_zb_cluster_list, "temperature", EP);
                 createAttributes(esp_zb_cluster_list, "humidity", EP);
@@ -828,10 +844,33 @@ static void esp_zb_task(void *pvParameters)
                 createAttributes(esp_zb_cluster_list, "humidity", EP);
                 createAttributes(esp_zb_cluster_list, "pressure", EP);
             }
+            else if (strcmp(sensor, "SiHT") == 0 && strcmp(cluster, "all") == 0)
+            {
+                createAttributes(esp_zb_cluster_list, "temperature", EP);
+                createAttributes(esp_zb_cluster_list, "humidity", EP);
+            }
+            else */
+
+            // if cluster set to all - create all clusters using json option clusters
+            if (strcmp(cluster, "all") == 0)
+            {
+                cJSON *cluster_item;
+                cJSON_ArrayForEach(cluster_item, clusters_)
+                {
+                    if (cJSON_IsString(cluster_item) && strcmp(cluster_item->valuestring, "all") != 0)
+                    {
+                        createAttributes(esp_zb_cluster_list, cluster_item->valuestring, EP);
+                    }
+                }
+            }
+
+            // light cluster
             else if (strcmp(sensor, "led_light") == 0 && strcmp(cluster, "all") == 0)
             {
                 light_data_t *light = get_existing_or_create_new_light(EP);
             }
+
+            // default case - create only one cluster
             else
             {
                 createAttributes(esp_zb_cluster_list, cluster, EP);

@@ -1,0 +1,42 @@
+{
+    "menuSection": "sensors",
+    "configItem": [
+        {
+            "name": "SCD4x CO2 + temperature, humidity",
+            "sensor": "SCD4x",
+            "id": "scd4x",
+            "int": 60,
+            "pin_SCL": 7,
+            "pin_SDA": 6,
+            "clusters": [
+                "all",
+                "co2",
+                "temperature",
+                "humidity"
+            ],
+            "EP": 1,
+            "descr": "Датчик CO2 + температура + влажность"
+        }
+    ],
+    "about": {
+        "authorName": "xyzroe",
+        "authorContact": "https://t.me/xyzroe",
+        "authorGit": "https://github.com/xyzroe",
+        "specialThanks": "",
+        "moduleName": "scd4x",
+        "moduleVersion": "1.0",
+        "title": "Датчик SCD4x CO2",
+        "moduleDesc": "Позволяет получить значения углекислого, температуры и влажности с датчиков Sensirion SCD4x.",
+        "retInfo": "",
+        "propInfo": {
+            "int": "Количество секунд между опросами датчика.",
+            "pin_SDA": "Укажите GPIO номер пина",
+            "pin_SCL": "Укажите GPIO номер пина"
+        }
+    },
+    "defActive": true,
+    "usedLibs": {
+        "esp32_C6": [],
+        "esp32_H2": []
+    }
+}

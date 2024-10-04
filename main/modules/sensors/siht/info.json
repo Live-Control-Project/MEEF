@@ -1,0 +1,41 @@
+{
+    "menuSection": "sensors",
+    "configItem": [
+        {
+            "name": "Si70xx/HTU2xD/SHT2x (temperature humidity)",
+            "sensor": "SiHT",
+            "id": "siht",
+            "int": 60,
+            "pin_SCL": 7,
+            "pin_SDA": 6,
+            "clusters": [
+                "all",
+                "temperature",
+                "humidity"
+            ],
+            "EP": 1,
+            "descr": "Датчик температуры / влажности"
+        }
+    ],
+    "about": {
+        "authorName": "xyzroe",
+        "authorContact": "https://t.me/xyzroe",
+        "authorGit": "https://github.com/xyzroe",
+        "specialThanks": "",
+        "moduleName": "siht",
+        "moduleVersion": "1.0",
+        "title": "Сенсор температуры и влажности Si7021",
+        "moduleDesc": "Позволяет получить значения температуры и влажности с Si7013/Si7020/Si7021/HTU2xD/SHT2x.",
+        "retInfo": "",
+        "propInfo": {
+            "int": "Количество секунд между опросами датчика.",
+            "pin_SDA": "Укажите GPIO номер пина",
+            "pin_SCL": "Укажите GPIO номер пина"
+        }
+    },
+    "defActive": true,
+    "usedLibs": {
+        "esp32_C6": [],
+        "esp32_H2": []
+    }
+}

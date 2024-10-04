@@ -46,197 +46,211 @@ void send_data(uint16_t sensor_val, int param_ep, char *cluster)
         cJSON_Delete(sensordata);
     }
     // ZIGBEE
-    if (sys_settings.zigbee.zigbee_conected == true && strcmp(cluster, "temperature") == 0)
+    if (sys_settings.zigbee.zigbee_conected == true)
     {
-
-        esp_zb_zcl_status_t state_tmp = esp_zb_zcl_set_attribute_val(param_ep, ESP_ZB_ZCL_CLUSTER_ID_TEMP_MEASUREMENT, ESP_ZB_ZCL_CLUSTER_SERVER_ROLE, ESP_ZB_ZCL_ATTR_TEMP_MEASUREMENT_VALUE_ID, &sensor_val, false);
-        if (state_tmp != ESP_ZB_ZCL_STATUS_SUCCESS)
+        if (strcmp(cluster, "temperature") == 0)
         {
-            ESP_LOGE(TAG_send_data, "Setting temperature attribute failed!");
+            esp_zb_zcl_status_t state_tmp = esp_zb_zcl_set_attribute_val(param_ep, ESP_ZB_ZCL_CLUSTER_ID_TEMP_MEASUREMENT, ESP_ZB_ZCL_CLUSTER_SERVER_ROLE, ESP_ZB_ZCL_ATTR_TEMP_MEASUREMENT_VALUE_ID, &sensor_val, false);
+            if (state_tmp != ESP_ZB_ZCL_STATUS_SUCCESS)
+            {
+                ESP_LOGE(TAG_send_data, "Setting temperature attribute failed!");
+            }
+
+            //    reportAttribute(param_ep, ESP_ZB_ZCL_CLUSTER_ID_TEMP_MEASUREMENT, ESP_ZB_ZCL_ATTR_TEMP_MEASUREMENT_VALUE_ID, &sensor_val, 1);
         }
-
-        //    reportAttribute(param_ep, ESP_ZB_ZCL_CLUSTER_ID_TEMP_MEASUREMENT, ESP_ZB_ZCL_ATTR_TEMP_MEASUREMENT_VALUE_ID, &sensor_val, 1);
-    }
-    else if (sys_settings.zigbee.zigbee_conected == true && strcmp(cluster, "humidity") == 0)
-    {
-
-        esp_zb_zcl_status_t state_hum = esp_zb_zcl_set_attribute_val(param_ep, ESP_ZB_ZCL_CLUSTER_ID_REL_HUMIDITY_MEASUREMENT, ESP_ZB_ZCL_CLUSTER_SERVER_ROLE, ESP_ZB_ZCL_ATTR_REL_HUMIDITY_MEASUREMENT_VALUE_ID, &sensor_val, false);
-        if (state_hum != ESP_ZB_ZCL_STATUS_SUCCESS)
+        else if (strcmp(cluster, "humidity") == 0)
         {
-            ESP_LOGE(TAG_send_data, "Setting humidity attribute failed!");
+
+            esp_zb_zcl_status_t state_hum = esp_zb_zcl_set_attribute_val(param_ep, ESP_ZB_ZCL_CLUSTER_ID_REL_HUMIDITY_MEASUREMENT, ESP_ZB_ZCL_CLUSTER_SERVER_ROLE, ESP_ZB_ZCL_ATTR_REL_HUMIDITY_MEASUREMENT_VALUE_ID, &sensor_val, false);
+            if (state_hum != ESP_ZB_ZCL_STATUS_SUCCESS)
+            {
+                ESP_LOGE(TAG_send_data, "Setting humidity attribute failed!");
+            }
+
+            //   reportAttribute(param_ep, ESP_ZB_ZCL_CLUSTER_ID_REL_HUMIDITY_MEASUREMENT, ESP_ZB_ZCL_ATTR_REL_HUMIDITY_MEASUREMENT_VALUE_ID, &sensor_val, 1);
         }
-
-        //   reportAttribute(param_ep, ESP_ZB_ZCL_CLUSTER_ID_REL_HUMIDITY_MEASUREMENT, ESP_ZB_ZCL_ATTR_REL_HUMIDITY_MEASUREMENT_VALUE_ID, &sensor_val, 1);
-    }
-    else if (sys_settings.zigbee.zigbee_conected == true && strcmp(cluster, "pressure") == 0)
-    {
-
-        esp_zb_zcl_status_t state_pres = esp_zb_zcl_set_attribute_val(param_ep, ESP_ZB_ZCL_CLUSTER_ID_PRESSURE_MEASUREMENT, ESP_ZB_ZCL_CLUSTER_SERVER_ROLE, ESP_ZB_ZCL_ATTR_PRESSURE_MEASUREMENT_VALUE_ID, &sensor_val, false);
-        if (state_pres != ESP_ZB_ZCL_STATUS_SUCCESS)
+        else if (strcmp(cluster, "pressure") == 0)
         {
-            ESP_LOGE(TAG_send_data, "Setting pressure attribute failed!");
+
+            esp_zb_zcl_status_t state_pres = esp_zb_zcl_set_attribute_val(param_ep, ESP_ZB_ZCL_CLUSTER_ID_PRESSURE_MEASUREMENT, ESP_ZB_ZCL_CLUSTER_SERVER_ROLE, ESP_ZB_ZCL_ATTR_PRESSURE_MEASUREMENT_VALUE_ID, &sensor_val, false);
+            if (state_pres != ESP_ZB_ZCL_STATUS_SUCCESS)
+            {
+                ESP_LOGE(TAG_send_data, "Setting pressure attribute failed!");
+            }
+
+            // reportAttribute(param_ep, ESP_ZB_ZCL_CLUSTER_ID_PRESSURE_MEASUREMENT, ESP_ZB_ZCL_ATTR_PRESSURE_MEASUREMENT_VALUE_ID, &sensor_val, 1);
         }
+        else if (strcmp(cluster, "co2") == 0)
+        {
+            float carbon = (float)(sensor_val) / 1000000.0f;
 
-        // reportAttribute(param_ep, ESP_ZB_ZCL_CLUSTER_ID_PRESSURE_MEASUREMENT, ESP_ZB_ZCL_ATTR_PRESSURE_MEASUREMENT_VALUE_ID, &sensor_val, 1);
-    }
-    else if (sys_settings.zigbee.zigbee_conected == true && strcmp(cluster, "BINARY") == 0)
-    {
+            esp_zb_zcl_status_t state_co2 = esp_zb_zcl_set_attribute_val(param_ep, ESP_ZB_ZCL_CLUSTER_ID_CARBON_DIOXIDE_MEASUREMENT, ESP_ZB_ZCL_CLUSTER_SERVER_ROLE, ESP_ZB_ZCL_ATTR_CARBON_DIOXIDE_MEASUREMENT_MEASURED_VALUE_ID, &carbon, false);
+            if (state_co2 != ESP_ZB_ZCL_STATUS_SUCCESS)
+            {
+                ESP_LOGE(TAG_send_data, "Setting co2 attribute failed!");
+            }
 
-        reportAttribute(param_ep, ESP_ZB_ZCL_CLUSTER_ID_BINARY_INPUT, ESP_ZB_ZCL_ATTR_BINARY_INPUT_PRESENT_VALUE_ID, &sensor_val, 1);
-    }
-    //----------------
-    else if (sys_settings.zigbee.zigbee_conected == true && strcmp(cluster, "ZoneStatus") == 0)
-    {
+            // reportAttribute(param_ep, ESP_ZB_ZCL_CLUSTER_ID_CARBON_DIOXIDE_MEASUREMENT, ESP_ZB_ZCL_ATTR_CARBON_DIOXIDE_MEASUREMENT_MEASURED_VALUE_ID, &sensor_val, 1);
+        }
+        else if (strcmp(cluster, "BINARY") == 0)
+        {
 
-        esp_zb_zcl_ias_zone_status_change_notif_cmd_t cmd = {
-            .zcl_basic_cmd = {
-                .dst_addr_u.addr_short = 0x0000,
-                .dst_endpoint = param_ep,
-                .src_endpoint = param_ep,
-            },
-            .address_mode = ESP_ZB_APS_ADDR_MODE_16_ENDP_PRESENT,
-            .zone_status = ESP_ZB_ZCL_IAS_ZONE_ZONE_STATUS_ALARM1 ? sensor_val : 0,
-            //    .zone_id = 0,
-            .delay = 0,
-        };
-        esp_zb_zcl_ias_zone_status_change_notif_cmd_req(&cmd);
-    }
-    else if (sys_settings.zigbee.zigbee_conected == true && strcmp(cluster, "Motion") == 0)
-    {
+            reportAttribute(param_ep, ESP_ZB_ZCL_CLUSTER_ID_BINARY_INPUT, ESP_ZB_ZCL_ATTR_BINARY_INPUT_PRESENT_VALUE_ID, &sensor_val, 1);
+        }
+        //----------------
+        else if (strcmp(cluster, "ZoneStatus") == 0)
+        {
 
-        esp_zb_zcl_ias_zone_status_change_notif_cmd_t cmd = {
-            .zcl_basic_cmd = {
-                .dst_addr_u.addr_short = 0x0000,
-                .dst_endpoint = param_ep,
-                .src_endpoint = param_ep,
-            },
-            .address_mode = ESP_ZB_APS_ADDR_MODE_16_ENDP_PRESENT,
-            .zone_status = ESP_ZB_ZCL_IAS_ZONE_ZONE_STATUS_ALARM1 ? sensor_val : 0,
-            //    .zone_id = 0,
-            .delay = 0,
-        };
-        esp_zb_zcl_ias_zone_status_change_notif_cmd_req(&cmd);
-    }
-    else if (sys_settings.zigbee.zigbee_conected == true && strcmp(cluster, "Contact") == 0)
-    {
+            esp_zb_zcl_ias_zone_status_change_notif_cmd_t cmd = {
+                .zcl_basic_cmd = {
+                    .dst_addr_u.addr_short = 0x0000,
+                    .dst_endpoint = param_ep,
+                    .src_endpoint = param_ep,
+                },
+                .address_mode = ESP_ZB_APS_ADDR_MODE_16_ENDP_PRESENT,
+                .zone_status = ESP_ZB_ZCL_IAS_ZONE_ZONE_STATUS_ALARM1 ? sensor_val : 0,
+                //    .zone_id = 0,
+                .delay = 0,
+            };
+            esp_zb_zcl_ias_zone_status_change_notif_cmd_req(&cmd);
+        }
+        else if (strcmp(cluster, "Motion") == 0)
+        {
 
-        esp_zb_zcl_ias_zone_status_change_notif_cmd_t cmd = {
-            .zcl_basic_cmd = {
-                .dst_addr_u.addr_short = 0x0000,
-                .dst_endpoint = param_ep,
-                .src_endpoint = param_ep,
-            },
-            .address_mode = ESP_ZB_APS_ADDR_MODE_16_ENDP_PRESENT,
-            .zone_status = ESP_ZB_ZCL_IAS_ZONE_ZONE_STATUS_ALARM1 ? sensor_val : 0,
-            //    .zone_id = 0,
-            .delay = 0,
-        };
-        esp_zb_zcl_ias_zone_status_change_notif_cmd_req(&cmd);
-    }
-    else if (sys_settings.zigbee.zigbee_conected == true && strcmp(cluster, "Door_Window") == 0)
-    {
+            esp_zb_zcl_ias_zone_status_change_notif_cmd_t cmd = {
+                .zcl_basic_cmd = {
+                    .dst_addr_u.addr_short = 0x0000,
+                    .dst_endpoint = param_ep,
+                    .src_endpoint = param_ep,
+                },
+                .address_mode = ESP_ZB_APS_ADDR_MODE_16_ENDP_PRESENT,
+                .zone_status = ESP_ZB_ZCL_IAS_ZONE_ZONE_STATUS_ALARM1 ? sensor_val : 0,
+                //    .zone_id = 0,
+                .delay = 0,
+            };
+            esp_zb_zcl_ias_zone_status_change_notif_cmd_req(&cmd);
+        }
+        else if (strcmp(cluster, "Contact") == 0)
+        {
 
-        esp_zb_zcl_ias_zone_status_change_notif_cmd_t cmd = {
-            .zcl_basic_cmd = {
-                .dst_addr_u.addr_short = 0x0000,
-                .dst_endpoint = param_ep,
-                .src_endpoint = param_ep,
-            },
-            .address_mode = ESP_ZB_APS_ADDR_MODE_16_ENDP_PRESENT,
-            .zone_status = ESP_ZB_ZCL_IAS_ZONE_ZONE_STATUS_ALARM1 ? sensor_val : 0,
-            //    .zone_id = 0,
-            .delay = 0,
-        };
-        esp_zb_zcl_ias_zone_status_change_notif_cmd_req(&cmd);
-    }
-    else if (sys_settings.zigbee.zigbee_conected == true && strcmp(cluster, "Fire") == 0)
-    {
+            esp_zb_zcl_ias_zone_status_change_notif_cmd_t cmd = {
+                .zcl_basic_cmd = {
+                    .dst_addr_u.addr_short = 0x0000,
+                    .dst_endpoint = param_ep,
+                    .src_endpoint = param_ep,
+                },
+                .address_mode = ESP_ZB_APS_ADDR_MODE_16_ENDP_PRESENT,
+                .zone_status = ESP_ZB_ZCL_IAS_ZONE_ZONE_STATUS_ALARM1 ? sensor_val : 0,
+                //    .zone_id = 0,
+                .delay = 0,
+            };
+            esp_zb_zcl_ias_zone_status_change_notif_cmd_req(&cmd);
+        }
+        else if (strcmp(cluster, "Door_Window") == 0)
+        {
 
-        esp_zb_zcl_ias_zone_status_change_notif_cmd_t cmd = {
-            .zcl_basic_cmd = {
-                .dst_addr_u.addr_short = 0x0000,
-                .dst_endpoint = param_ep,
-                .src_endpoint = param_ep,
-            },
-            .address_mode = ESP_ZB_APS_ADDR_MODE_16_ENDP_PRESENT,
-            .zone_status = ESP_ZB_ZCL_IAS_ZONE_ZONE_STATUS_ALARM1 ? sensor_val : 0,
-            //    .zone_id = 0,
-            .delay = 0,
-        };
-        esp_zb_zcl_ias_zone_status_change_notif_cmd_req(&cmd);
-    }
-    else if (sys_settings.zigbee.zigbee_conected == true && strcmp(cluster, "Occupancy") == 0)
-    {
+            esp_zb_zcl_ias_zone_status_change_notif_cmd_t cmd = {
+                .zcl_basic_cmd = {
+                    .dst_addr_u.addr_short = 0x0000,
+                    .dst_endpoint = param_ep,
+                    .src_endpoint = param_ep,
+                },
+                .address_mode = ESP_ZB_APS_ADDR_MODE_16_ENDP_PRESENT,
+                .zone_status = ESP_ZB_ZCL_IAS_ZONE_ZONE_STATUS_ALARM1 ? sensor_val : 0,
+                //    .zone_id = 0,
+                .delay = 0,
+            };
+            esp_zb_zcl_ias_zone_status_change_notif_cmd_req(&cmd);
+        }
+        else if (strcmp(cluster, "Fire") == 0)
+        {
 
-        esp_zb_zcl_ias_zone_status_change_notif_cmd_t cmd = {
-            .zcl_basic_cmd = {
-                .dst_addr_u.addr_short = 0x0000,
-                .dst_endpoint = param_ep,
-                .src_endpoint = param_ep,
-            },
-            .address_mode = ESP_ZB_APS_ADDR_MODE_16_ENDP_PRESENT,
-            .zone_status = ESP_ZB_ZCL_IAS_ZONE_ZONE_STATUS_ALARM1 ? sensor_val : 0,
-            //    .zone_id = 0,
-            .delay = 0,
-        };
-        esp_zb_zcl_ias_zone_status_change_notif_cmd_req(&cmd);
-    }
-    else if (sys_settings.zigbee.zigbee_conected == true && strcmp(cluster, "WaterLeak") == 0)
-    {
+            esp_zb_zcl_ias_zone_status_change_notif_cmd_t cmd = {
+                .zcl_basic_cmd = {
+                    .dst_addr_u.addr_short = 0x0000,
+                    .dst_endpoint = param_ep,
+                    .src_endpoint = param_ep,
+                },
+                .address_mode = ESP_ZB_APS_ADDR_MODE_16_ENDP_PRESENT,
+                .zone_status = ESP_ZB_ZCL_IAS_ZONE_ZONE_STATUS_ALARM1 ? sensor_val : 0,
+                //    .zone_id = 0,
+                .delay = 0,
+            };
+            esp_zb_zcl_ias_zone_status_change_notif_cmd_req(&cmd);
+        }
+        else if (strcmp(cluster, "Occupancy") == 0)
+        {
 
-        esp_zb_zcl_ias_zone_status_change_notif_cmd_t cmd = {
-            .zcl_basic_cmd = {
-                .dst_addr_u.addr_short = 0x0000,
-                .dst_endpoint = param_ep,
-                .src_endpoint = param_ep,
-            },
-            .address_mode = ESP_ZB_APS_ADDR_MODE_16_ENDP_PRESENT,
-            .zone_status = ESP_ZB_ZCL_IAS_ZONE_ZONE_STATUS_ALARM1 ? sensor_val : 0,
-            //    .zone_id = 0,
-            .delay = 0,
-        };
-        esp_zb_zcl_ias_zone_status_change_notif_cmd_req(&cmd);
-    }
-    else if (sys_settings.zigbee.zigbee_conected == true && strcmp(cluster, "Carbon") == 0)
-    {
+            esp_zb_zcl_ias_zone_status_change_notif_cmd_t cmd = {
+                .zcl_basic_cmd = {
+                    .dst_addr_u.addr_short = 0x0000,
+                    .dst_endpoint = param_ep,
+                    .src_endpoint = param_ep,
+                },
+                .address_mode = ESP_ZB_APS_ADDR_MODE_16_ENDP_PRESENT,
+                .zone_status = ESP_ZB_ZCL_IAS_ZONE_ZONE_STATUS_ALARM1 ? sensor_val : 0,
+                //    .zone_id = 0,
+                .delay = 0,
+            };
+            esp_zb_zcl_ias_zone_status_change_notif_cmd_req(&cmd);
+        }
+        else if (strcmp(cluster, "WaterLeak") == 0)
+        {
 
-        esp_zb_zcl_ias_zone_status_change_notif_cmd_t cmd = {
-            .zcl_basic_cmd = {
-                .dst_addr_u.addr_short = 0x0000,
-                .dst_endpoint = param_ep,
-                .src_endpoint = param_ep,
-            },
-            .address_mode = ESP_ZB_APS_ADDR_MODE_16_ENDP_PRESENT,
-            .zone_status = ESP_ZB_ZCL_IAS_ZONE_ZONE_STATUS_ALARM1 ? sensor_val : 0,
-            //    .zone_id = 0,
-            .delay = 0,
-        };
-        esp_zb_zcl_ias_zone_status_change_notif_cmd_req(&cmd);
-    }
-    else if (sys_settings.zigbee.zigbee_conected == true && strcmp(cluster, "Remote_Control") == 0)
-    {
+            esp_zb_zcl_ias_zone_status_change_notif_cmd_t cmd = {
+                .zcl_basic_cmd = {
+                    .dst_addr_u.addr_short = 0x0000,
+                    .dst_endpoint = param_ep,
+                    .src_endpoint = param_ep,
+                },
+                .address_mode = ESP_ZB_APS_ADDR_MODE_16_ENDP_PRESENT,
+                .zone_status = ESP_ZB_ZCL_IAS_ZONE_ZONE_STATUS_ALARM1 ? sensor_val : 0,
+                //    .zone_id = 0,
+                .delay = 0,
+            };
+            esp_zb_zcl_ias_zone_status_change_notif_cmd_req(&cmd);
+        }
+        else if (strcmp(cluster, "Carbon") == 0)
+        {
 
-        esp_zb_zcl_ias_zone_status_change_notif_cmd_t cmd = {
-            .zcl_basic_cmd = {
-                .dst_addr_u.addr_short = 0x0000,
-                .dst_endpoint = param_ep,
-                .src_endpoint = param_ep,
-            },
-            .address_mode = ESP_ZB_APS_ADDR_MODE_16_ENDP_PRESENT,
-            .zone_status = ESP_ZB_ZCL_IAS_ZONE_ZONE_STATUS_ALARM1 ? sensor_val : 0,
-            //    .zone_id = 0,
-            .delay = 0,
-        };
-        esp_zb_zcl_ias_zone_status_change_notif_cmd_req(&cmd);
-    }
-    // swith
-    if (sys_settings.zigbee.zigbee_conected == true && strcmp(cluster, "switch") == 0)
-    {
-        reportAttribute(param_ep, ESP_ZB_ZCL_CLUSTER_ID_ON_OFF, ESP_ZB_ZCL_ATTR_ON_OFF_ON_OFF_ID, &sensor_val, 1);
-    }
-    //   battery
-    if (sys_settings.zigbee.zigbee_conected == true && strcmp(cluster, "battery") == 0)
-    {
-        reportAttribute(param_ep, ESP_ZB_ZCL_CLUSTER_ID_POWER_CONFIG, ESP_ZB_ZCL_ATTR_POWER_CONFIG_BATTERY_PERCENTAGE_REMAINING_ID, &sensor_val, 1);
+            esp_zb_zcl_ias_zone_status_change_notif_cmd_t cmd = {
+                .zcl_basic_cmd = {
+                    .dst_addr_u.addr_short = 0x0000,
+                    .dst_endpoint = param_ep,
+                    .src_endpoint = param_ep,
+                },
+                .address_mode = ESP_ZB_APS_ADDR_MODE_16_ENDP_PRESENT,
+                .zone_status = ESP_ZB_ZCL_IAS_ZONE_ZONE_STATUS_ALARM1 ? sensor_val : 0,
+                //    .zone_id = 0,
+                .delay = 0,
+            };
+            esp_zb_zcl_ias_zone_status_change_notif_cmd_req(&cmd);
+        }
+        else if (strcmp(cluster, "Remote_Control") == 0)
+        {
+
+            esp_zb_zcl_ias_zone_status_change_notif_cmd_t cmd = {
+                .zcl_basic_cmd = {
+                    .dst_addr_u.addr_short = 0x0000,
+                    .dst_endpoint = param_ep,
+                    .src_endpoint = param_ep,
+                },
+                .address_mode = ESP_ZB_APS_ADDR_MODE_16_ENDP_PRESENT,
+                .zone_status = ESP_ZB_ZCL_IAS_ZONE_ZONE_STATUS_ALARM1 ? sensor_val : 0,
+                //    .zone_id = 0,
+                .delay = 0,
+            };
+            esp_zb_zcl_ias_zone_status_change_notif_cmd_req(&cmd);
+        }
+        // swith
+        if (strcmp(cluster, "switch") == 0)
+        {
+            reportAttribute(param_ep, ESP_ZB_ZCL_CLUSTER_ID_ON_OFF, ESP_ZB_ZCL_ATTR_ON_OFF_ON_OFF_ID, &sensor_val, 1);
+        }
+        //   battery
+        if (strcmp(cluster, "battery") == 0)
+        {
+            reportAttribute(param_ep, ESP_ZB_ZCL_CLUSTER_ID_POWER_CONFIG, ESP_ZB_ZCL_ATTR_POWER_CONFIG_BATTERY_PERCENTAGE_REMAINING_ID, &sensor_val, 1);
+        }
     }
 }
